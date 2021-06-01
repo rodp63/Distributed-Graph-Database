@@ -43,3 +43,5 @@ char *DeleteResponse::ParseToCharBuffer() const {
 std::shared_ptr<ServerResponse> ProcessResponse(int connectionFD) {
   return nullptr;
 }
+
+}
