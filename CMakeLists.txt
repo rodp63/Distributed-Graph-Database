@@ -8,8 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-add_executable(server server.cpp ${DMP_SOURCES})
+add_executable(server src/server.cpp ${DMP_SOURCES})
 target_link_libraries(server pthread)
 
-add_executable(client client.cpp ${DMP_SOURCES})
+add_executable(client src/client.cpp ${DMP_SOURCES})
 target_link_libraries(client pthread)
