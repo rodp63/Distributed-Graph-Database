@@ -15,6 +15,8 @@
 #include <memory>
 #include <vector>
 
+#include "Condition.hpp"
+
 namespace DMP {
 
 enum RequestType {
@@ -61,11 +63,13 @@ struct CreateRequest : ClientRequest {
 struct ReadRequest : ClientRequest {
   int action;
   int query_node_size;
-  char query_node[99];
+  std::string query_node;
   int deep;
   int leaf;
   int attributes;
   int number_of_conditions;
+
+  std::vector<Conditional> conditionals;
 
   ReadRequest() : ClientRequest('R', kReadRequest) {}
   ~ReadRequest() {}
