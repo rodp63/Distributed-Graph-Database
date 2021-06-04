@@ -1,3 +1,4 @@
+// Copyright 2021 <The Three Musketeers UCSP>
 #include "DMPResponse.hpp"
 
 namespace DMP {
@@ -44,4 +45,4 @@ std::shared_ptr<ServerResponse> ProcessResponse(int connectionFD) {
   return nullptr;
 }
 
-}
+}  // namespace DMP
