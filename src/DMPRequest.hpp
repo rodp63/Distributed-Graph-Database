@@ -1,5 +1,6 @@
-#ifndef DISTRIBUTED_GRAPH_DATABASE_DMP_REQUEST_H_
-#define DISTRIBUTED_GRAPH_DATABASE_DMP_REQUEST_H_
+// Copyright 2021 <The Three Musketeers UCSP>
+#ifndef SRC_DMPREQUEST_HPP_
+#define SRC_DMPREQUEST_HPP_
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -17,9 +18,9 @@
 namespace DMP {
 
 enum RequestType {
-  KCreateRequest,
-  KReadRequest,
-  KUpdateRequest,
+  kCreateRequest,
+  kReadRequest,
+  kUpdateRequest,
   kDeleteRequest
 };
 
@@ -28,29 +29,29 @@ struct ClientRequest {
 
   ClientRequest(char action, RequestType type) : accion(action), _type(type) {}
 
-  virtual ~ClientRequest() {};
+  virtual ~ClientRequest() {}
 
   RequestType type() const {
     return _type;
-  };
+  }
 
-  virtual void PrintStructure() const {};
+  virtual void PrintStructure() const {}
   virtual char* ParseToCharBuffer() const {
     return nullptr;
-  };
+  }
 
  private:
   RequestType _type;
 };
 
 struct CreateRequest : ClientRequest {
-  int action;               
-  int name_node_size;       
-  char name_node[255];      
-  int number_of_attributes; 
-  int number_of_relations;  
+  int action;
+  int name_node_size;
+  char name_node[255];
+  int number_of_attributes;
+  int number_of_relations;
 
-  CreateRequest() : ClientRequest('C', KCreateRequest) {}
+  CreateRequest() : ClientRequest('C', kCreateRequest) {}
   ~CreateRequest() {}
 
   void PrintStructure() const override;
@@ -66,7 +67,7 @@ struct ReadRequest : ClientRequest {
   int attributes;
   int number_of_conditions;
 
-  ReadRequest() : ClientRequest('R', KReadRequest) {}
+  ReadRequest() : ClientRequest('R', kReadRequest) {}
   ~ReadRequest() {}
 
   void PrintStructure() const override;
@@ -76,10 +77,10 @@ struct ReadRequest : ClientRequest {
 struct UpdateRequest : ClientRequest {
   int action;
   int node_or_attribute;
-  int  query_node_size ;
+  int  query_node_size;
   char query_value_node[99];
 
-  UpdateRequest() : ClientRequest('U', KUpdateRequest) {}
+  UpdateRequest() : ClientRequest('U', kUpdateRequest) {}
   ~UpdateRequest() {}
 
   void PrintStructure() const override;
@@ -101,6 +102,6 @@ struct DeleteRequest : ClientRequest {
 
 std::shared_ptr<ClientRequest> ProcessRequest(int connectionFD);
 
-}
+}  // namespace DMP
 
-#endif // DISTRIBUTED_GRAPH_DATABASE_DMP_REQUEST_H_
+#endif  // SRC_DMPREQUEST_HPP_
