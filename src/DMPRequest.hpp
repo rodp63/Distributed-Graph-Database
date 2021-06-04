@@ -14,6 +14,7 @@
 #include <list>
 #include <memory>
 #include <vector>
+#include <string>
 
 namespace DMP {
 
@@ -77,14 +78,14 @@ struct ReadRequest : ClientRequest {
 struct UpdateRequest : ClientRequest {
   struct NodeUpdate {
     int set_node_size;
-    char set_node_value[99];
+    std::string set_node_value;
   };
 
   struct AttributeUpdate {
     int query_attribute_size;
-    char query_attribute_value[255];
+    std::string query_attribute_value;
     int set_attribute_size;
-    char set_attribute_value[255];
+    std::string set_attribute_value;
   };
 
   enum {kAttribute, kNode};
@@ -92,7 +93,7 @@ struct UpdateRequest : ClientRequest {
   char action;
   int node_or_attribute;
   int  query_node_size;
-  char query_node_value[99];
+  std::string query_node_value;
   NodeUpdate* node_info;
   AttributeUpdate* attribute_info;
 
@@ -106,7 +107,7 @@ struct UpdateRequest : ClientRequest {
 struct DeleteRequest : ClientRequest {
   struct AttributeOrRelationDelete {
     int query_attribute_or_relation_size;
-    char query_attribute_or_relation_value[255];
+    std::string query_attribute_or_relation_value;
   };
 
   enum {kAttribute, kNode, kRelation};
@@ -114,7 +115,7 @@ struct DeleteRequest : ClientRequest {
   char action;
   int node_or_attribute_or_relation;
   int  query_node_size;
-  char query_node_value[99];
+  std::string query_node_value;
   AttributeOrRelationDelete* attribute_or_relation_info;
 
   DeleteRequest() : ClientRequest('D', kDeleteRequest) {}

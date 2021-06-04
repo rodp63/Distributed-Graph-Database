@@ -56,16 +56,16 @@ char* UpdateRequest::ParseToCharBuffer() const {
   std::string parsed_structure("U");
   parsed_structure += std::to_string(node_or_attribute);
   parsed_structure += std::to_string(query_node_size);
-  parsed_structure += std::string(query_node_value);
+  parsed_structure += query_node_value;
 
   if (this->node_or_attribute == kAttribute) {
     parsed_structure += std::to_string(query_attribute_size);
-    parsed_structure += std::string(query_attribute_value);
+    parsed_structure += query_attribute_value;
     parsed_structure += std::to_string(set_attribute_size);
-    parsed_structure += std::string(set_attribute_value);
+    parsed_structure += set_attribute_value;
   } else if (this->node_or_attribute == kNode) {
     parsed_structure += std::to_string(set_node_size);
-    parsed_structure += std::string(set_node_value);
+    parsed_structure += set_node_value;
   }
 
   char* buffer = new char[parsed_structure.length() + 1];
@@ -92,12 +92,12 @@ void DeleteRequest::PrintStructure() const {
   std::cout << "\tQuery node value: " << this->query_node_value << "\n";
 
   if (this->node_or_attribute != kNode) {
-    std::cout << "Query attribute or relation size: "
+    std::cout << "\tQuery attribute or relation size: "
               << this->attribute_or_relation_info->query_attribute_or_relation_size
               << "\n";
-    std::cout << "Query attribute or relation value: "
+    std::cout << "\tQuery attribute or relation value: "
               << this->attribute_or_relation_info->query_attribute_or_relation_value
-              << "\n";
+              << std::endl;
   }
 }
 
@@ -105,11 +105,11 @@ char* DeleteRequest::ParseToCharBuffer() const {
   std::string parsed_structure("D");
   parsed_structure += std::to_string(node_or_attribute_or_relation);
   parsed_structure += std::to_string(query_node_size);
-  parsed_structure += std::string(query_node_value);
+  parsed_structure += query_node_value;
 
   if (this->node_or_attribute != kNode) {
     parsed_structure += std::to_string(query_attribute_or_relation_size);
-    parsed_structure += std::string(query_attribute_or_relation_value);
+    parsed_structure += query_attribute_or_relation_value;
   }
 
   char* buffer = new char[parsed_structure.length() + 1];
