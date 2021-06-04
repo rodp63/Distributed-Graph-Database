@@ -75,10 +75,26 @@ struct ReadRequest : ClientRequest {
 };
 
 struct UpdateRequest : ClientRequest {
-  int action;
+  struct NodeUpdate {
+    int set_node_size;
+    char set_node_value[99];
+  };
+
+  struct AttributeUpdate {
+    int query_attribute_size;
+    char query_attribute_value[255];
+    int set_attribute_size;
+    char set_attribute_value[255];
+  };
+
+  enum {kAttribute, kNode};
+
+  char action;
   int node_or_attribute;
   int  query_node_size;
-  char query_value_node[99];
+  char query_node_value[99];
+  NodeUpdate* node_info;
+  AttributeUpdate* attribute_info;
 
   UpdateRequest() : ClientRequest('U', kUpdateRequest) {}
   ~UpdateRequest() {}
@@ -88,10 +104,18 @@ struct UpdateRequest : ClientRequest {
 };
 
 struct DeleteRequest : ClientRequest {
-  int action;
-  int node_or_attribute;
+  struct AttributeOrRelationDelete {
+    int query_attribute_or_relation_size;
+    char query_attribute_or_relation_value[255];
+  };
+
+  enum {kAttribute, kNode, kRelation};
+
+  char action;
+  int node_or_attribute_or_relation;
   int  query_node_size;
-  char query_value_node[99];
+  char query_node_value[99];
+  AttributeOrRelationDelete* attribute_or_relation_info;
 
   DeleteRequest() : ClientRequest('D', kDeleteRequest) {}
   ~DeleteRequest() {}
