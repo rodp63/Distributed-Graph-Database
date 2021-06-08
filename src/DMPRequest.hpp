@@ -61,6 +61,18 @@ struct CreateRequest : ClientRequest {
 };
 
 struct ReadRequest : ClientRequest {
+
+  struct Conditional {
+
+    int  query_name_attribute_size;
+    std::string query_name_attribute;
+    int  operador;
+    int  query_value_attribute_size;
+    std::string query_value_attribute;
+    int  is_and;
+
+  };
+
   int action;
   int query_node_size;
   std::string query_node;

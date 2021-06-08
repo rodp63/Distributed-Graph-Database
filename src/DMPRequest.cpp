@@ -70,7 +70,6 @@ std::shared_ptr<ClientRequest> ProcessRequest(int connectionFD) {
   }
   char action = buffer[0];
   std::string s = buffer;
-
   switch (action) {
     case 'R': {
       auto read_request = std::make_shared<ReadRequest>();
@@ -83,7 +82,7 @@ std::shared_ptr<ClientRequest> ProcessRequest(int connectionFD) {
       read_request->attributes = stoi(s.substr(5 + read_request->query_node_size, 1));
       read_request->number_of_conditions = stoi(s.substr(6 + read_request->query_node_size, 2));
 
-      Conditional tmp_conditional;
+      DMP::ReadRequest::Conditional tmp_conditional;
       int index = 1 + 2 + read_request->query_node_size + 1 + 1 + 1 + 2;
 
       for (int i = 0; i < read_request->number_of_conditions; i++) {
