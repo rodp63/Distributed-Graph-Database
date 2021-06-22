@@ -1,19 +1,17 @@
 #include "DGDB.h"
 #include "tools.h"
 
-using namespace std;
-
 void DGDB::runConnection(int Pconnection) {
   int n;
   int s, ss;
   char buffer[1024];
   char bufferB[1024];
   connections[Pconnection] = "";
-  string data;
+  std::string data;
   bool existeRelaciones = false;
   bool existeAtributos = false;
 
-  cout << "wwww" << endl;
+  std::cout << "wwww" << std::endl;
 
   while (server || repository) {
     n = read(Pconnection, buffer, 1);
@@ -27,7 +25,7 @@ void DGDB::runConnection(int Pconnection) {
     }
 
     if (buffer[0] == 'C') {
-      cout << "Action:C\n";
+      std::cout << "Action:C\n";
       n = read(Pconnection, buffer, 3);
 
       if (n < 3) {
@@ -47,7 +45,7 @@ void DGDB::runConnection(int Pconnection) {
         int r;
 
         if (buffer[s - 1] == '0') { // no existen relaciones
-          cout << "No se envio relaciones" << endl;
+          std::cout << "No se envio relaciones" << std::endl;
           buffer[s - 1] = '\0';
         }
         else if (buffer[s - 1] - '0' > 0) {
@@ -59,32 +57,32 @@ void DGDB::runConnection(int Pconnection) {
           n = read(Pconnection, bufferB, ss);
           bufferB[n] = '\0';
 
-          cout << "nodeB:" << bufferB << endl;
+          std::cout << "nodeB:" << bufferB << std::endl;
         }
 
         if (buffer[s - 2] == '0') { // no existen atributos
-          cout << "No se envio atributos" << endl;
+          std::cout << "No se envio atributos" << std::endl;
           buffer[s - 2] = '\0';
         }
 
-        cout << "data:[" << buffer << "]" << endl;
+        std::cout << "data:[" << buffer << "]" << std::endl;
         data = buffer;
 
         if (socketRepositories.size() > 1) {
           // enviar al  Repository
           // determinar que repository
           if (socketRepositories.size() < 2) {
-            cout << "Repository has not been attached." << endl;
+            std::cout << "Repository has not been attached." << std::endl;
             return;
           }
           else
             r = buffer[0] % (socketRepositories.size() - 1);
 
           r++;
-          cout << "xxxx--:" << socketRepositories.size() << endl;
-          cout << "xxxx-r:" << r << endl;
-          cout << "xxxx-s:" << socketRepositories[r] << endl;
-          cout << "xxxx-d:" << data << endl;
+          std::cout << "xxxx--:" << socketRepositories.size() << std::endl;
+          std::cout << "xxxx-r:" << r << std::endl;
+          std::cout << "xxxx-s:" << socketRepositories[r] << std::endl;
+          std::cout << "xxxx-d:" << data << std::endl;
 
           if (existeRelaciones && !existeAtributos) {
             createRelation(data, bufferB, socketRepositories[r]);
@@ -99,10 +97,10 @@ void DGDB::runConnection(int Pconnection) {
             createNode(data, socketRepositories[r]);
           }
 
-          cout << "xxxx" << endl;
+          std::cout << "xxxx" << std::endl;
         }
         else if (repository) {
-          cout << "Store:" << data << "-" << bufferB << endl;
+          std::cout << "Store:" << data << "-" << bufferB << std::endl;
         }
       }
     }
@@ -132,13 +130,13 @@ void DGDB::runConnection(int Pconnection) {
         pbuffer = &buffer[5];
         strncpy(vIp, pbuffer, 16);
         buffer[16] = '\0';
-        string vIp_string = vIp;
+        std::string vIp_string = vIp;
         trim(vIp_string);
         connMasterRepository(vPort_int, vIp_string);
 
         if (repository) {
           socketRepositories.push_back(socketRepository);
-          cout << "Repository registed." << endl;
+          std::cout << "Repository registed." << std::endl;
         }
         else
           perror("ERROR no se pudo registrar Repositorio\n");
@@ -175,7 +173,7 @@ void DGDB::runServer() {
     runThread.join();
   }
   else if (mode == 'R') {
-    cout << "RRRRR" << endl;
+    std::cout << "RRRRR" << std::endl;
     std::thread runThread(&DGDB::runRepository, this);
     runThread.join();
   }
@@ -263,7 +261,7 @@ void DGDB::closeServer() {
 }
 
 void DGDB::setRepository() {
-  cout << "setRepository" << endl;
+  std::cout << "setRepository" << std::endl;
   int Res;
   socketRepository = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -297,15 +295,15 @@ void DGDB::setRepository() {
   mode = 'R';
 }
 
-void DGDB::setNode(string name) {
+void DGDB::setNode(std::string name) {
   createNode(name, socketCliente);
 }
 
-void DGDB::setRelation(string nameA, string nameB) {
+void DGDB::setRelation(std::string nameA, std::string nameB) {
   createRelation(nameA, nameB, socketCliente);
 }
 
-void DGDB::createRelation(string nameA, string nameB, int conn ) {
+void DGDB::createRelation(std::string nameA, std::string nameB, int conn ) {
   //string tmp = nameA + "-" + nameB;
   //int n = write(socketCliente,tmp.c_str(),tmp.length());
 
@@ -324,8 +322,8 @@ void DGDB::createRelation(string nameA, string nameB, int conn ) {
 
   char tamano[4];
   sprintf(tamano, "%03d", nameA.length());
-  string buffer;
-  string tmp = tamano;
+  std::string buffer;
+  std::string tmp = tamano;
   buffer = "C" + tmp + nameA + "01";
 
   sprintf(tamano, "%03d", nameB.length());
@@ -334,7 +332,7 @@ void DGDB::createRelation(string nameA, string nameB, int conn ) {
   //C004julio01004UCSP
 
   int n;
-  //cout << "*" << buffer.c_str() << "*" << "endl";
+  //std::cout << "*" << buffer.c_str() << "*" << "std::endl";
   n = write(conn, buffer.c_str(), buffer.length());
 
   if (n < 0) {
@@ -350,7 +348,7 @@ void DGDB::createRelation(string nameA, string nameB, int conn ) {
 
 /// Protocolo
 
-void DGDB::createNode(string name, int conn) {
+void DGDB::createNode(std::string name, int conn) {
   /*
   int action; // 1B CRUD                  C
   int name_node_size;// 3B                3
@@ -361,11 +359,11 @@ void DGDB::createNode(string name, int conn) {
 
   char tamano[4];
   sprintf(tamano, "%03d", name.length());
-  string buffer;
-  string tmp = tamano;
+  std::string buffer;
+  std::string tmp = tamano;
   buffer = "C" + tmp + name + "00";
   int n;
-  //cout << "*" << buffer.c_str() << "*" << "endl";
+  //std::cout << "*" << buffer.c_str() << "*" << "std::endl";
   n = write(conn, buffer.c_str(), buffer.length());
 
   if (n < 0) {
@@ -384,70 +382,70 @@ void DGDB::registerRepository() {
   int port; // 5B
   char ip[16] VB
   */
-  cout << ip << endl;
-  string buffer;
+  std::cout << ip << std::endl;
+  std::string buffer;
   char vip[17];
   char vport[6];
   sprintf(vport, "%05d", port);
   vport[5] = '\0';
   sprintf(vip, "%016s", ip.c_str());
-  cout << vip << endl;
-  string sport = vport;
-  string sip = vip;
+  std::cout << vip << std::endl;
+  std::string sport = vport;
+  std::string sip = vip;
   buffer = "R" + sport + sip;
-  cout << "*" << buffer.c_str() << "*" << endl;
+  std::cout << "*" << buffer.c_str() << "*" << std::endl;
   // Set conn to Main
   int Res;
   int socketMain = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   if (-1 == socketMain) {
-    cout << "cannot create socket" << endl;
+    std::cout << "cannot create socket" << std::endl;
     exit(EXIT_FAILURE);
   }
 
   //memset(&stSockAddr, 0, sizeof(struct sockaddr_in));
-  cout << "*1*" << endl;
+  std::cout << "*1*" << std::endl;
   stSockAddr.sin_family = AF_INET;
   stSockAddr.sin_port = htons(mainPort);
   Res = inet_pton(AF_INET, mainIp.c_str(), &stSockAddr.sin_addr);
 
   if (0 > Res) {
-    cout << "error: first parameter is not a valid address family" << endl;
+    std::cout << "error: first parameter is not a valid address family" << std::endl;
     close(socketMain);
     exit(EXIT_FAILURE);
   }
   else if (0 == Res) {
-    cout << "char string (second parameter does not contain valid ipaddress" <<
-         endl;
+    std::cout << "char string (second parameter does not contain valid ipaddress" <<
+         std::endl;
     close(socketMain);
     exit(EXIT_FAILURE);
   }
 
-  cout << "*2*" << endl;
+  std::cout << "*2*" << std::endl;
   Res == connect(socketMain, (const struct sockaddr*)&stSockAddr,
                  sizeof(struct sockaddr_in));
 
   if (Res == -1) {
-    cout << "connect failed" << endl;
+    std::cout << "connect failed" << std::endl;
     close(socketMain);
     exit(EXIT_FAILURE);
   }
 
   //
-  cout << "*3*" << endl;
+  std::cout << "*3*" << std::endl;
   int n = write(socketMain, buffer.c_str(), buffer.length());
-  cout << "*4*" << endl;
+  std::cout << "*4*" << std::endl;
 
   if (n < 0) {
-    cout << "error listen failed" << endl;
+    std::cout << "error listen failed" << std::endl;
     close(socketMain);
     exit(EXIT_FAILURE);
   }
   else if (n > 0 && n != buffer.length()) {
-    cout << "Registing Repository:[" << buffer << "]" << endl;
+    std::cout << "Registing Repository:[" << buffer << "]" << std::endl;
   }
 
-  cout << n << endl;
+  std::cout << n << std::endl;
 }
 
 void DGDB::runRepository() {
@@ -464,8 +462,8 @@ void DGDB::runRepository() {
   }
 }
 
-void DGDB::connMasterRepository(int pPort, string pIp) {
-  cout << pPort << "-" << pIp << endl;
+void DGDB::connMasterRepository(int pPort, std::string pIp) {
+  std::cout << pPort << "-" << pIp << std::endl;
   int Res;
   socketRepository = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 

@@ -17,12 +17,10 @@
 #include <map>
 #include <vector>
 
-using namespace std;
-
 class DGDB {
  private:
   int port;
-  string ip;
+  std::string ip;
   struct sockaddr_in stSockAddr;
   int connection;
   int server;
@@ -34,7 +32,7 @@ class DGDB {
   int repository;
 
   int mainPort;
-  string mainIp;
+  std::string mainIp;
 
   std::map<int, std::string>   connections;
   std::vector<int> socketRepositories; // se usa en el maestro
@@ -43,7 +41,7 @@ class DGDB {
   void runMainServer();
 
   void runConnection(int Pconnection);
-  void connMasterRepository(int pPort, string pIp);
+  void connMasterRepository(int pPort, std::string pIp);
 
  public:
   void runRepository();
@@ -57,7 +55,7 @@ class DGDB {
     repository=0;
     socketRepositories.push_back(0);
   }
-  void setMainIp(string ip) {
+  void setMainIp(std::string ip) {
     mainIp = ip;
   };
   void setMainPort(int pport=50000) {
@@ -77,7 +75,7 @@ class DGDB {
   void setPort(int Pport=50000) {
     port = Pport;
   }
-  void setIp(string Pip="127.0.0.1") {
+  void setIp(std::string Pip="127.0.0.1") {
     ip = Pip;
   }
   void setNumberRepositories(int r) {
@@ -86,14 +84,14 @@ class DGDB {
   void registerRepository();
 
   // CRUD DGDB
-  void setNode(string name);
-  void setRelation(string nameA, string nameB);
-  void createRelation(string nameA, string nameB, int conn=0);
+  void setNode(std::string name);
+  void setRelation(std::string nameA, std::string nameB);
+  void createRelation(std::string nameA, std::string nameB, int conn=0);
 
   ///  Protocolo
-  void createNode(string name, int conn=0);
-  void createNodeAttrite(string name, int conn, string attriteName,
-                         string attriteValue);
+  void createNode(std::string name, int conn=0);
+  void createNodeAttrite(std::string name, int conn, std::string attriteName,
+                         std::string attriteValue);
 };
 
 #endif
