@@ -16,6 +16,7 @@
 #include <thread>
 #include <map>
 #include <vector>
+#include <algorithm>
 
 class DGDB {
  private:
@@ -85,8 +86,9 @@ class DGDB {
 
   // CRUD DGDB
   void setNode(std::string name);
-  void setRelation(std::string nameA, std::string nameB);
-  void createRelation(std::string nameA, std::string nameB, int conn=0);
+  void setRelation(std::vector<std::string> args);
+  void createRelation(std::string nameA, std::string nameB, int conn=0,
+                      std::vector<std::pair<std::string, std::string> > attributes = {});
 
   ///  Protocolo
   void createNode(std::string name, int conn=0);

@@ -6,6 +6,8 @@ void DGDB::runConnection(int Pconnection) {
   int s, ss;
   char buffer[1024];
   char bufferB[1024];
+  char bufferA[1024];
+  std::vector<std::pair<std::string, std::string> > attributes;
   connections[Pconnection] = "";
   std::string data;
   bool existeRelaciones = false;
@@ -43,7 +45,6 @@ void DGDB::runConnection(int Pconnection) {
       }
       else {
         int r;
-
         if (buffer[s - 1] == '0') { // no existen relaciones
           std::cout << "No se envio relaciones" << std::endl;
           buffer[s - 1] = '\0';
@@ -51,17 +52,39 @@ void DGDB::runConnection(int Pconnection) {
         else if (buffer[s - 1] - '0' > 0) {
           // exite almenos una relacion
           existeRelaciones = true;
+          buffer[s - 1] = '\0';
           n = read(Pconnection, bufferB, 3);
           bufferB[3] = '\0';
           ss = atoi(bufferB);
           n = read(Pconnection, bufferB, ss);
           bufferB[n] = '\0';
-
-          std::cout << "nodeB:" << bufferB << std::endl;
         }
-
         if (buffer[s - 2] == '0') { // no existen atributos
           std::cout << "No se envio atributos" << std::endl;
+          buffer[s - 2] = '\0';
+        }
+        else {
+          // existe al menos un atributo
+          existeAtributos = true;
+          bufferA[0] = buffer[s-2];
+          bufferA[1] = '\0';
+          int cantidad = atoi(bufferA);
+          while(cantidad--) {
+            std::pair<std::string, std::string> current;
+            n = read(Pconnection, bufferA, 3);
+            bufferA[3] = '\0';
+            ss = atoi(bufferA);
+            n = read(Pconnection, bufferA, ss);
+            bufferA[n] = '\0';
+            current.first = bufferA;
+            n = read(Pconnection, bufferA, 3);
+            bufferA[3] = '\0';
+            ss = atoi(bufferA);
+            n = read(Pconnection, bufferA, ss);
+            bufferA[n] = '\0';
+            current.second = bufferA;
+            attributes.push_back(current);
+          }
           buffer[s - 2] = '\0';
         }
 
@@ -84,23 +107,17 @@ void DGDB::runConnection(int Pconnection) {
           std::cout << "xxxx-s:" << socketRepositories[r] << std::endl;
           std::cout << "xxxx-d:" << data << std::endl;
 
-          if (existeRelaciones && !existeAtributos) {
-            createRelation(data, bufferB, socketRepositories[r]);
-          }
-          else if (existeRelaciones && existeAtributos) {
-            //
-          }
-          else if (!existeRelaciones && existeAtributos) {
-            //
-          }
-          else if (!existeRelaciones && !existeAtributos) {
-            createNode(data, socketRepositories[r]);
-          }
+          createRelation(data, bufferB, socketRepositories[r], attributes);
 
           std::cout << "xxxx" << std::endl;
         }
         else if (repository) {
           std::cout << "Store:" << data << "-" << bufferB << std::endl;
+          std::cout << "Attributes\n";
+          for (auto &attr : attributes) {
+            std::cout << "-> " << attr.first << " : " << attr.second << std::endl;
+          }
+          attributes.clear();
         }
       }
     }
@@ -299,11 +316,35 @@ void DGDB::setNode(std::string name) {
   createNode(name, socketCliente);
 }
 
-void DGDB::setRelation(std::string nameA, std::string nameB) {
-  createRelation(nameA, nameB, socketCliente);
+void DGDB::setRelation(std::vector<std::string> args) {
+  std::reverse(args.begin(), args.end());
+  std::string nameA = args[0], nameB;
+  std::vector<std::pair<std::string, std::string> > attributes;
+  for (int i = 1; i < args.size(); i += 2) {
+    if (args[i] != "-a") {
+      nameB = args[i];
+      break;
+    }
+    if (i + 1 < args.size()) {
+      int equal_pos = args[i+1].find('=');
+      std::string key = args[i+1].substr(0, equal_pos);
+      std::string value = args[i+1].substr(equal_pos + 1);
+      attributes.emplace_back(key, value);
+    }
+    else{
+      nameB = "!!!!!!";
+      break;
+    }
+  }
+  if (nameB.size() && nameB != args.back()){
+    std::cout << "Invalid input!" << std::endl;
+    return;
+  }
+  createRelation(nameA, nameB, socketCliente, attributes);
 }
 
-void DGDB::createRelation(std::string nameA, std::string nameB, int conn ) {
+void DGDB::createRelation(std::string nameA, std::string nameB, int conn,
+                          std::vector<std::pair<std::string, std::string> > attributes) {
   //string tmp = nameA + "-" + nameB;
   //int n = write(socketCliente,tmp.c_str(),tmp.length());
 
@@ -318,18 +359,33 @@ void DGDB::createRelation(std::string nameA, std::string nameB, int conn ) {
   int node_relation_size;  // 3B
   char node_relations[255];// VB
 
+  int name_attribute_size;  //  3B        13
+  char name_attribute[255]; //  VB        Primer Nombre
+  int value_attribute_size; //  3B        5
+  char value_attribute[255];//  VB        Julio
   */
 
   char tamano[4];
   sprintf(tamano, "%03d", nameA.length());
   std::string buffer;
   std::string tmp = tamano;
-  buffer = "C" + tmp + nameA + "01";
+  buffer = "C" + tmp + nameA + char('0' + attributes.size()) + char('0' + nameB.size());
 
-  sprintf(tamano, "%03d", nameB.length());
-  tmp = tamano;
-  buffer = buffer + tmp + nameB;
+  if (nameB.size()) {
+    sprintf(tamano, "%03d", nameB.length());
+    tmp = tamano;
+    buffer = buffer + tmp + nameB;
+  }
   //C004julio01004UCSP
+
+  for (auto attr : attributes) {
+    sprintf(tamano, "%03d", attr.first.length());
+    tmp = tamano;
+    buffer = buffer + tmp + attr.first;
+    sprintf(tamano, "%03d", attr.second.length());
+    tmp = tamano;
+    buffer = buffer + tmp + attr.second;
+  }
 
   int n;
   //std::cout << "*" << buffer.c_str() << "*" << "std::endl";

@@ -6,8 +6,12 @@ int main(int argc, char* argv[]) {
   if (argv[1][0] == 'C') {
     db.setMode('C');
     db.setClient();
-    //db.setNode(argv[2]);
-    db.setRelation(argv[2], argv[3]);
+    std::vector<std::string> args;
+    while(argc > 2) {
+      args.push_back(argv[argc-1]);
+      argc--;
+    }
+    db.setRelation(args);
   }
   else if (argv[1][0] == 'S') {
     db.setMode('S');
