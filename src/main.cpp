@@ -26,9 +26,7 @@ int main(int argc, char* argv[]) {
     db.setMode('R');
     db.setRepository();
     db.runServer();
-
   }
-
 }
 
 

@@ -18,8 +18,14 @@
 #include <vector>
 #include <algorithm>
 
+#include "network/Network.h"
+
 class DGDB {
  private:
+  TCPSocket server_socket;
+  TCPSocket client_socket;
+  TCPSocket repository_socket;
+
   int port;
   std::string ip;
   struct sockaddr_in stSockAddr;
@@ -35,7 +41,7 @@ class DGDB {
   int mainPort;
   std::string mainIp;
 
-  std::map<int, std::string>   connections;
+  std::map<int, std::string> connections;
   std::vector<int> socketRepositories; // se usa en el maestro
   //Repository_port  Repository_ip
 
@@ -45,7 +51,6 @@ class DGDB {
   void connMasterRepository(int pPort, std::string pIp);
 
  public:
-  void runRepository();
   DGDB(char Pmode='S') {
     mode = Pmode;
     ip="127.0.0.1";
@@ -70,6 +75,7 @@ class DGDB {
   void closeClient();
   void closeRepository();
   void runServer();
+  void runRepository();
   void setMode(char Pmode='S') {
     mode = Pmode;
   }
@@ -88,7 +94,7 @@ class DGDB {
   void setNode(std::string name);
   void setRelation(std::vector<std::string> args);
   void createRelation(std::string nameA, std::string nameB, int conn=0,
-                      std::vector<std::pair<std::string, std::string> > attributes = {});
+                      std::vector<std::pair<std::string, std::string>> attributes = {});
 
   ///  Protocolo
   void createNode(std::string name, int conn=0);
