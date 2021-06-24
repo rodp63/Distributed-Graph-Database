@@ -1,16 +1,10 @@
 #ifndef NETWORK_NETWORK_H_
 #define NETWORK_NETWORK_H_
 
-#include <cstdio>
-#include <cstdlib>
-#include <vector>
-#include <deque>
+#include <cstdint>
 #include <string>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <thread>
-#include <unistd.h>
-#include <arpa/inet.h>
+
+namespace Network {
 
 class UDPSocket {
  private:
@@ -19,10 +13,10 @@ class UDPSocket {
  public:
   UDPSocket();
 
-  void SendTo(const std::string& ip_addr, unsigned short int port,
+  void SendTo(const std::string& ip_addr, uint16_t port,
               const char* buffer, int len, int flags = 0);
   int RecvFrom(char* buffer, int len, int flags = 0);
-  void Bind(unsigned short int port);
+  void Bind(uint16_t port);
 };
 
 class TCPSocket {
@@ -31,19 +25,21 @@ class TCPSocket {
 
  public:
   TCPSocket() : sock(-2) {}
-  TCPSocket(int sock) : sock(sock) {}
+  explicit TCPSocket(int sock) : sock(sock) {}
 
   void Init();
   void RenewSocket();
   int GetSocketId();
-  void Bind(unsigned short int port);
+  void Bind(uint16_t port);
   int Send(const char* buffer, int len, int flags = 0);
   int Recv(char* buffer, int len, int flags = 0);
   void SetListenerSocket();
   int AcceptConnection();
-  void Connect(std::string ip, unsigned short int port);
+  void Connect(std::string ip, uint16_t port);
   void Shutdown(int flags = 0);
   void Close();
 };
+
+}  // namespace Network
 
 #endif  // NETWORK_NETWORK_H_

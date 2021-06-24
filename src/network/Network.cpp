@@ -1,5 +1,12 @@
 #include "Network.h"
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+namespace Network {
+
 UDPSocket::UDPSocket() {
   sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -9,14 +16,15 @@ UDPSocket::UDPSocket() {
   }
 }
 
-void UDPSocket::SendTo(const std::string& ip_addr, unsigned short int port,
+void UDPSocket::SendTo(const std::string& ip_addr, uint16_t port,
                        const char* buffer, int len, int flags) {
   sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = inet_addr(ip_addr.c_str());
   addr.sin_port = htons(port);
 
-  int ret = sendto(sock, buffer, len, flags, (sockaddr*)&addr, sizeof(addr));
+  int ret = sendto(sock, buffer, len, flags, reinterpret_cast<sockaddr*>(&addr),
+                   sizeof(addr));
 
   if (ret < 0) {
     perror("Failed sending via UDPSocket.");
@@ -28,8 +36,9 @@ void UDPSocket::SendTo(const std::string& ip_addr, unsigned short int port,
 int UDPSocket::RecvFrom(char* buffer, int len, int flags) {
   sockaddr_in from;
   int size = sizeof(from);
-  int ret = recvfrom(sock, buffer, len, flags, (sockaddr*)&from,
-                     (socklen_t*)&size);
+  int ret = recvfrom(sock, buffer, len, flags,
+                     reinterpret_cast<sockaddr*>(&from),
+                     reinterpret_cast<socklen_t*>(&size));
 
   if (ret < 0) {
     perror("Failed recieving via UDPSocket.");
@@ -41,13 +50,13 @@ int UDPSocket::RecvFrom(char* buffer, int len, int flags) {
   return ret;
 }
 
-void UDPSocket::Bind(unsigned short int port) {
+void UDPSocket::Bind(uint16_t port) {
   sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-  int ret = bind(sock, (sockaddr*)&addr, sizeof(addr));
+  int ret = bind(sock, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
 
   if (ret < 0) {
     perror("Socket binding error.");
@@ -58,7 +67,8 @@ void UDPSocket::Bind(unsigned short int port) {
 
 void TCPSocket::Init() {
   if (sock != -2) {
-    perror("TCPSocket already initialized with Init(). Use RenewSocket() instead.");
+    perror("TCPSocket already initialized with Init()."
+           "Use RenewSocket() instead.");
     return;
   }
 
@@ -112,7 +122,7 @@ int TCPSocket::Recv(char* buffer, int len, int flags) {
   return ret;
 }
 
-void TCPSocket::Bind(unsigned short int port) {
+void TCPSocket::Bind(uint16_t port) {
   sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
@@ -148,7 +158,7 @@ int TCPSocket::AcceptConnection() {
   return new_connection;
 }
 
-void TCPSocket::Connect(std::string ip, unsigned short int port) {
+void TCPSocket::Connect(std::string ip, uint16_t port) {
   sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
@@ -173,3 +183,5 @@ void TCPSocket::Connect(std::string ip, unsigned short int port) {
     exit(EXIT_FAILURE);
   }
 }
+
+}  // namespace Network

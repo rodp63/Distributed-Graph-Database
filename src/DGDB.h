@@ -22,9 +22,9 @@
 
 class DGDB {
  private:
-  TCPSocket server_socket;
-  TCPSocket client_socket;
-  TCPSocket repository_socket;
+  Network::TCPSocket server_socket;
+  Network::TCPSocket client_socket;
+  Network::TCPSocket repository_socket;
 
   int port;
   std::string ip;
