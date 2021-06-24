@@ -172,15 +172,9 @@ void DGDB::runConnection(int Pconnection) {
 
 void DGDB::runMainServer() {
   for (;;) {
-    int newConnection = accept(socketServer, NULL, NULL);
+    int new_connection = server_socket.AcceptConnection();
 
-    if (0 > newConnection) {
-      perror("error accept failed");
-      close(newConnection);
-      exit(EXIT_FAILURE);
-    }
-
-    std::thread(&DGDB::runConnection, this, newConnection).detach();
+    std::thread(&DGDB::runConnection, this, new_connection).detach();
   }
 }
 
@@ -241,34 +235,8 @@ void DGDB::closeClient() {
 }
 
 void DGDB::setServer() {
-  int Res;
-  socketServer = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  if (-1 == socketServer) {
-    perror("can not create socket");
-    exit(EXIT_FAILURE);
-  }
-
-  stSockAddr.sin_family = AF_INET;
-  stSockAddr.sin_port = htons(port);
-  stSockAddr.sin_addr.s_addr = INADDR_ANY;
-  Res = bind(socketServer, (const struct sockaddr*)&stSockAddr,
-             sizeof(struct sockaddr_in));
-
-  if (-1 == Res) {
-    perror("error bind failed");
-    close(socketServer);
-    exit(EXIT_FAILURE);
-  }
-
-  Res = listen(socketServer, 10);
-
-  if (-1 == Res) {
-    perror("error listen failed");
-    close(socketServer);
-    exit(EXIT_FAILURE);
-  }
-
+  server_socket.Bind(port);
+  server_socket.SetListenerSocket();
   server = 1;
 }
 

@@ -18,8 +18,14 @@
 #include <vector>
 #include <algorithm>
 
+#include "network/Network.h"
+
 class DGDB {
  private:
+  TCPSocket server_socket;
+  UDPSocket client_socket;
+  UDPSocket repository_socket;
+
   int port;
   std::string ip;
   struct sockaddr_in stSockAddr;
