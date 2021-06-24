@@ -24,7 +24,7 @@ class DGDB {
  private:
   TCPSocket server_socket;
   UDPSocket client_socket;
-  UDPSocket repository_socket;
+  TCPSocket repository_socket;
 
   int port;
   std::string ip;

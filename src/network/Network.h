@@ -98,13 +98,7 @@ class TCPSocket {
     close(sock);
   }
 
-  void Send(const std::string& ip_addr, int port, const char* buffer, int len,
-            int flags = 0) {
-    sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = inet_addr(ip_addr.c_str());
-
+  int Send(const char* buffer, int len, int flags = 0) {
     int ret = send(sock, buffer, len, flags);
 
     if (ret < 0) {
@@ -112,6 +106,8 @@ class TCPSocket {
       close(sock);
       exit(1);
     }
+
+    return ret;
   }
 
   int Recv(char* buffer, int len, int flags = 0) {
@@ -164,6 +160,32 @@ class TCPSocket {
     }
 
     return new_connection;
+  }
+
+  void Connect(std::string ip, int port) {
+    sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    int ret = inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
+
+    if (ret < 0) {
+      perror("error: first parameter is not a valid address family");
+      close(sock);
+      exit(EXIT_FAILURE);
+    }
+    else if (ret == 0) {
+      perror("Invalid IP address");
+      close(sock);
+      exit(EXIT_FAILURE);
+    }
+
+    ret = connect(sock, (sockaddr*)&addr, sizeof(addr));
+
+    if (ret < 0) {
+      perror("connect failed");
+      close(sock);
+      exit(EXIT_FAILURE);
+    }
   }
 };
 

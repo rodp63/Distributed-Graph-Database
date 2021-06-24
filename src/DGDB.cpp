@@ -247,37 +247,11 @@ void DGDB::closeServer() {
 
 void DGDB::setRepository() {
   std::cout << "setRepository" << std::endl;
-  int Res;
-  socketRepository = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  if (-1 == socketRepository) {
-    perror("can not create socket");
-    exit(EXIT_FAILURE);
-  }
-
-  stSockAddr.sin_family = AF_INET;
-  stSockAddr.sin_port = htons(port);
-  stSockAddr.sin_addr.s_addr = INADDR_ANY;
-  Res = bind(socketRepository, (const struct sockaddr*)&stSockAddr,
-             sizeof(struct sockaddr_in));
-
-  if (-1 == Res) {
-    perror("error bind failed");
-    close(socketServer);
-    exit(EXIT_FAILURE);
-  }
-
-  Res = listen(socketRepository, 10);
-
-  if (-1 == Res) {
-    perror("error listen failed");
-    close(socketRepository);
-    exit(EXIT_FAILURE);
-  }
+  repository_socket.Bind(port);
+  repository_socket.SetListenerSocket();
 
   registerRepository();
   repository = 1;
-  mode = 'R';
 }
 
 void DGDB::setNode(std::string name) {
@@ -418,54 +392,18 @@ void DGDB::registerRepository() {
   std::string sip = vip;
   buffer = "R" + sport + sip;
   std::cout << "*" << buffer.c_str() << "*" << std::endl;
+
   // Set conn to Main
-  int Res;
-  int socketMain = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  if (-1 == socketMain) {
-    std::cout << "cannot create socket" << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
-  //memset(&stSockAddr, 0, sizeof(struct sockaddr_in));
-  std::cout << "*1*" << std::endl;
-  stSockAddr.sin_family = AF_INET;
-  stSockAddr.sin_port = htons(mainPort);
-  Res = inet_pton(AF_INET, mainIp.c_str(), &stSockAddr.sin_addr);
-
-  if (0 > Res) {
-    std::cout << "error: first parameter is not a valid address family" << std::endl;
-    close(socketMain);
-    exit(EXIT_FAILURE);
-  }
-  else if (0 == Res) {
-    std::cout << "char string (second parameter does not contain valid ipaddress" <<
-         std::endl;
-    close(socketMain);
-    exit(EXIT_FAILURE);
-  }
+  TCPSocket main_socket;
+  main_socket.Connect(mainIp, mainPort);
 
   std::cout << "*2*" << std::endl;
-  Res == connect(socketMain, (const struct sockaddr*)&stSockAddr,
-                 sizeof(struct sockaddr_in));
 
-  if (Res == -1) {
-    std::cout << "connect failed" << std::endl;
-    close(socketMain);
-    exit(EXIT_FAILURE);
-  }
-
-  //
   std::cout << "*3*" << std::endl;
-  int n = write(socketMain, buffer.c_str(), buffer.length());
+  int n = main_socket.Send(buffer.c_str(), buffer.length());
   std::cout << "*4*" << std::endl;
 
-  if (n < 0) {
-    std::cout << "error listen failed" << std::endl;
-    close(socketMain);
-    exit(EXIT_FAILURE);
-  }
-  else if (n > 0 && n != buffer.length()) {
+  if (n > 0 && n != buffer.length()) {
     std::cout << "Registing Repository:[" << buffer << "]" << std::endl;
   }
 
@@ -474,15 +412,9 @@ void DGDB::registerRepository() {
 
 void DGDB::runRepository() {
   for (;;) {
-    int newConnection = accept(socketRepository, NULL, NULL);
+    int new_connection = repository_socket.AcceptConnection();
 
-    if (0 > newConnection) {
-      perror("error accept failed");
-      close(newConnection);
-      exit(EXIT_FAILURE);
-    }
-
-    std::thread(&DGDB::runConnection, this, newConnection).detach();
+    std::thread(&DGDB::runConnection, this, new_connection).detach();
   }
 }
 
