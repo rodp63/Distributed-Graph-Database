@@ -12,7 +12,7 @@ void DGDB::runConnection(int Pconnection) {
   std::string data;
   bool existeRelaciones = false;
   bool existeAtributos = false;
-  TCPSocket conn_socket(Pconnection);
+  Network::TCPSocket conn_socket(Pconnection);
 
   std::cout << "wwww" << std::endl;
 
@@ -290,14 +290,14 @@ void DGDB::createRelation(std::string nameA, std::string nameB, int conn,
   */
 
   char tamano[4];
-  sprintf(tamano, "%03d", nameA.length());
+  sprintf(tamano, "%03lu", nameA.length());
   std::string buffer;
   std::string tmp = tamano;
   buffer = "C" + tmp + nameA + char('0' + attributes.size()) + char('0' +
            nameB.size());
 
   if (nameB.size()) {
-    sprintf(tamano, "%03d", nameB.length());
+    sprintf(tamano, "%03lu", nameB.length());
     tmp = tamano;
     buffer = buffer + tmp + nameB;
   }
@@ -305,15 +305,15 @@ void DGDB::createRelation(std::string nameA, std::string nameB, int conn,
   //C004julio01004UCSP
 
   for (auto attr : attributes) {
-    sprintf(tamano, "%03d", attr.first.length());
+    sprintf(tamano, "%03lu", attr.first.length());
     tmp = tamano;
     buffer = buffer + tmp + attr.first;
-    sprintf(tamano, "%03d", attr.second.length());
+    sprintf(tamano, "%03lu", attr.second.length());
     tmp = tamano;
     buffer = buffer + tmp + attr.second;
   }
 
-  TCPSocket conn_sock(conn);
+  Network::TCPSocket conn_sock(conn);
   int n = conn_sock.Send(buffer.c_str(), buffer.length());
 
   if (n > 0 && n != buffer.length()) {
@@ -334,7 +334,7 @@ void DGDB::createNode(std::string name, int conn) {
   */
 
   char tamano[4];
-  sprintf(tamano, "%03d", name.length());
+  sprintf(tamano, "%03lu", name.length());
   std::string buffer;
   std::string tmp = tamano;
   buffer = "C" + tmp + name + "00";
@@ -364,7 +364,7 @@ void DGDB::registerRepository() {
   char vport[6];
   sprintf(vport, "%05d", port);
   vport[5] = '\0';
-  sprintf(vip, "%016s", ip.c_str());
+  sprintf(vip, "%16s", ip.c_str());
   std::cout << vip << std::endl;
   std::string sport = vport;
   std::string sip = vip;
@@ -372,7 +372,7 @@ void DGDB::registerRepository() {
   std::cout << "*" << buffer.c_str() << "*" << std::endl;
 
   // Set conn to Main
-  TCPSocket main_socket;
+  Network::TCPSocket main_socket;
   main_socket.Init();
   main_socket.Connect(mainIp, mainPort);
 

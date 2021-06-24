@@ -8,5 +8,5 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-add_executable(dgdb src/main.cpp src/DGDB.cpp)
+add_executable(dgdb src/main.cpp src/DGDB.cpp src/network/Network.cpp)
 target_link_libraries(dgdb pthread)
