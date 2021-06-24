@@ -39,7 +39,7 @@ class UDPSocket {
     addr.sin_addr.s_addr = inet_addr(ip_addr.c_str());
     addr.sin_port = htons(port);
 
-    int ret = send(sock, buffer, len, flags);
+    int ret = sendto(sock, buffer, len, flags, (sockaddr*)&addr, sizeof(addr));
 
     if (ret < 0) {
       perror("Failed sending via UDPSocket.");
