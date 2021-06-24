@@ -28,12 +28,8 @@ class DGDB {
 
   int port;
   std::string ip;
-  struct sockaddr_in stSockAddr;
   int connection;
   int server;
-  int socketServer;
-  int socketCliente;
-  int socketRepository; // se usa en el servidor respositorio
   char mode;
   int numberRepositories;
   int repository;

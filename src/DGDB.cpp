@@ -206,8 +206,8 @@ void DGDB::setClient() {
 
 void DGDB::closeClient() {
   connection = 0;
-  shutdown(socketCliente, SHUT_RDWR);
-  close(socketCliente);
+  client_socket.Shutdown(SHUT_RDWR);
+  client_socket.Close();
 }
 
 void DGDB::setServer() {
@@ -219,7 +219,7 @@ void DGDB::setServer() {
 
 void DGDB::closeServer() {
   server = 0;
-  close(socketServer);
+  server_socket.Close();
 }
 
 void DGDB::setRepository() {
@@ -233,7 +233,7 @@ void DGDB::setRepository() {
 }
 
 void DGDB::setNode(std::string name) {
-  createNode(name, socketCliente);
+  createNode(name, client_socket.GetSocketId());
 }
 
 void DGDB::setRelation(std::vector<std::string> args) {
@@ -344,7 +344,7 @@ void DGDB::createNode(std::string name, int conn) {
 
   if (n < 0) {
     perror("error listen failed");
-    close(socketCliente);
+    client_socket.Close();
     exit(EXIT_FAILURE);
   }
   else if (n > 0 && n != buffer.length()) {

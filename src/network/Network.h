@@ -103,6 +103,14 @@ class TCPSocket {
     }
   }
 
+  void Shutdown(int flags = 0) {
+    shutdown(sock, flags);
+  }
+
+  void Close() {
+    close(sock);
+  }
+
   int GetSocketId() {
     return sock;
   }
