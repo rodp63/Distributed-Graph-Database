@@ -12,23 +12,20 @@ void DGDB::runConnection(int Pconnection) {
   std::string data;
   bool existeRelaciones = false;
   bool existeAtributos = false;
+  TCPSocket conn_socket(Pconnection);
 
   std::cout << "wwww" << std::endl;
 
   while (server || repository) {
-    n = read(Pconnection, buffer, 1);
+    n = conn_socket.Recv(buffer, 1);
 
-    if (n < 0)
-      perror("ERROR reading from socket");
-    else if (n == 0) {
-    }
-    else if (n > 0) {
+    if (n > 0) {
       printf("%s\n", buffer);
     }
 
     if (buffer[0] == 'C') {
       std::cout << "Action:C\n";
-      n = read(Pconnection, buffer, 3);
+      n = conn_socket.Recv(buffer, 3);
 
       if (n < 3) {
         perror("ERROR reading first size\n");
@@ -38,7 +35,7 @@ void DGDB::runConnection(int Pconnection) {
         s = atoi(buffer) + 2;
       }
 
-      n = read(Pconnection, buffer, s);
+      n = conn_socket.Recv(buffer, s);
 
       if (n < s) {
         perror("ERROR reading second size\n");
@@ -54,11 +51,11 @@ void DGDB::runConnection(int Pconnection) {
           // exite almenos una relacion
           existeRelaciones = true;
           buffer[s - 1] = '\0';
-          n = read(Pconnection, bufferB, 3);
-          bufferB[3] = '\0';
+
+          n = conn_socket.Recv(bufferB, 3);
+
           ss = atoi(bufferB);
-          n = read(Pconnection, bufferB, ss);
-          bufferB[n] = '\0';
+          n = conn_socket.Recv(bufferB, ss);
         }
 
         if (buffer[s - 2] == '0') { // no existen atributos
@@ -74,17 +71,17 @@ void DGDB::runConnection(int Pconnection) {
 
           while (cantidad--) {
             std::pair<std::string, std::string> current;
-            n = read(Pconnection, bufferA, 3);
-            bufferA[3] = '\0';
+            n = conn_socket.Recv(bufferA, 3);
+
             ss = atoi(bufferA);
-            n = read(Pconnection, bufferA, ss);
-            bufferA[n] = '\0';
+            n = conn_socket.Recv(bufferA, ss);
+
             current.first = bufferA;
-            n = read(Pconnection, bufferA, 3);
-            bufferA[3] = '\0';
+            n = conn_socket.Recv(bufferA, 3);
+
             ss = atoi(bufferA);
-            n = read(Pconnection, bufferA, ss);
-            bufferA[n] = '\0';
+            n = conn_socket.Recv(bufferA, ss);
+
             current.second = bufferA;
             attributes.push_back(current);
           }
@@ -138,7 +135,7 @@ void DGDB::runConnection(int Pconnection) {
     }
 
     else if (buffer[0] == 'R') {
-      n = read(Pconnection, buffer, 21);
+      n = conn_socket.Recv(buffer, 21);
 
       if (n < 21) {
         perror("ERROR reading size in Repository command\n");
@@ -149,13 +146,17 @@ void DGDB::runConnection(int Pconnection) {
         char vPort[6];
         int vPort_int;
         char* pbuffer;
+
         strncpy(vPort, buffer, 5);
         vPort_int = atoi(vPort);
+
         pbuffer = &buffer[5];
         strncpy(vIp, pbuffer, 16);
         buffer[16] = '\0';
+
         std::string vIp_string = vIp;
         trim(vIp_string);
+
         connMasterRepository(vPort_int, vIp_string);
 
         if (repository) {
