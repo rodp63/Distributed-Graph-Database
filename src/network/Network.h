@@ -33,7 +33,7 @@ class UDPSocket {
   }
 
   void SendTo(const std::string& ip_addr, int port, const char* buffer, int len,
-            int flags = 0) {
+              int flags = 0) {
     sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr(ip_addr.c_str());
@@ -85,18 +85,30 @@ class TCPSocket {
   int sock;
 
  public:
-  TCPSocket() {
-  }
+  TCPSocket() : sock(-2) {}
 
   TCPSocket(int sock) : sock(sock) {}
 
   void Init() {
+    if (sock != -2) {
+      perror("TCPSocket already initialized with Init(). Use RenewSocket() instead.");
+      return;
+    }
+
     sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     if (sock == -1) {
       perror("Failed initializing socket");
       exit(1);
     }
+  }
+
+  void Shutdown(int flags = 0) {
+    shutdown(sock, flags);
+  }
+
+  void Close() {
+    close(sock);
   }
 
   int GetSocketId() {
@@ -104,12 +116,8 @@ class TCPSocket {
   }
 
   void RenewSocket() {
-    sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-    if (sock == -1) {
-      perror("Failed initializing socket");
-      exit(1);
-    }
+    sock = -2;
+    Init();
   }
 
   int Send(const char* buffer, int len, int flags = 0) {
@@ -125,10 +133,7 @@ class TCPSocket {
   }
 
   int Recv(char* buffer, int len, int flags = 0) {
-    sockaddr_in from;
-    int size = sizeof(from);
-    int ret = recvfrom(sock, buffer, len, flags, (sockaddr*)&from,
-                       (socklen_t*)&size);
+    int ret = recv(sock, buffer, len, flags);
 
     if (ret < 0) {
       perror("Failed recieving via TCPSocket.");
