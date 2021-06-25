@@ -87,15 +87,11 @@ class DGDB {
   void registerRepository();
 
   // CRUD DGDB
-  void setNode(std::string name);
-  void setRelation(std::vector<std::string> args);
-  void createRelation(std::string nameA, std::string nameB, int conn=0,
-                      std::vector<std::pair<std::string, std::string>> attributes = {});
+  void setNode(std::vector<std::string> args);
+  void parseNewNode(std::string nameA, int conn=0,
+                    std::vector<std::pair<std::string, std::string>> attributes = {},
+                    std::vector<std::string> relations = {});
 
-  ///  Protocolo
-  void createNode(std::string name, int conn=0);
-  void createNodeAttrite(std::string name, int conn, std::string attriteName,
-                         std::string attriteValue);
 };
 
 #endif
