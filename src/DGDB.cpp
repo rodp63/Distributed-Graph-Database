@@ -1,5 +1,6 @@
 #include "DGDB.h"
 #include "tools.h"
+#include "thirdparty/sqlite_orm/sqlite_orm.h"
 
 namespace sq = sqlite_orm;
 
