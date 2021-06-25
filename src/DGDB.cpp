@@ -1,12 +1,15 @@
 #include "DGDB.h"
 #include "tools.h"
+#include "thirdparty/sqlite_orm/sqlite_orm.h"
+
+namespace sq = sqlite_orm;
 
 void DGDB::runConnection(int Pconnection) {
   int n;
   int s, ss;
   char buffer[1024];
   char bufferAux[1024];
-  std::vector<std::pair<std::string, std::string>> attributes;
+  std::vector<Attribute> attributes;
   std::vector<std::string> relations;
   std::string node_name;
   connections[Pconnection] = "";
@@ -34,6 +37,7 @@ void DGDB::runConnection(int Pconnection) {
       }
       else {
         int r;
+
         if (buffer[s - 2] == '0') {
           std::cout << "No se envio relaciones" << std::endl;
         }
@@ -70,10 +74,10 @@ void DGDB::runConnection(int Pconnection) {
             n = conn_socket.Recv(bufferAux, ss);
             current.second = bufferAux;
 
-            attributes.push_back(current);
+            attributes.push_back({"", current.first, current.second});
           }
         }
-        
+
         buffer[s - 2] = '\0';
         node_name = buffer;
 
@@ -96,16 +100,48 @@ void DGDB::runConnection(int Pconnection) {
           parseNewNode(node_name, socketRepositories[r], attributes, relations);
         }
         else if (repository) {
+          Node new_node{node_name};
+          std::cout << new_node.name << std::endl;
+
+          try {
+            storage.insert(new_node);
+          }
+          catch (std::system_error e) {
+            std::cout << e.what() << std::endl;
+            continue;
+          }
+
           std::cout << "Store: " << node_name << std::endl;
+
           if (attributes.size())
             std::cout << "Attributes:\n";
+
           for (auto& attr : attributes) {
-            std::cout << "> " << attr.first << " : " << attr.second << std::endl;
+            attr.node_name = node_name;
+            std::cout << "-> " << attr.key << " : " << attr.value << std::endl;
+            storage.insert(attr);
           }
 
           if (relations.size())
             std::cout << "Relations:\n";
-          for (auto& rel : relations) {
+
+          for (const auto& rel : relations) {
+            Node related_node{rel};
+
+            try {
+              auto node = storage.get_all<Node>(sq::where(sq::c(&Node::name) =
+                                                  related_node.name));
+
+              if (node.empty()) {
+                related_node.id = storage.insert(related_node);
+              }
+            }
+            catch (std::system_error e) {
+              std::cout << e.what() << std::endl;
+            }
+
+            Relation new_relation{new_node.name, related_node.name};
+            storage.insert(new_relation);
             std::cout << "> " << rel << std::endl;
           }
 
@@ -224,24 +260,24 @@ void DGDB::setRepository() {
 
 void DGDB::setNode(std::vector<std::string> args) {
   std::reverse(args.begin(), args.end());
-  std::string nameA = args[0];
 
-  std::vector<std::pair<std::string, std::string>> attributes;
+  std::string nameA = args[0];
+  std::vector<Attribute> attributes;
   std::vector<std::string> relations;
   bool error = false;
 
-  for (int i = 1; i < args.size(); i += 2) {
+  for (size_t i = 1; i < args.size(); i += 2) {
     if (args[i] == "-a") {
       if (i + 1 < args.size()) {
         int equal_pos = args[i+1].find('=');
         std::string key = args[i+1].substr(0, equal_pos);
         std::string value = args[i+1].substr(equal_pos + 1);
-        attributes.emplace_back(key, value);
+        attributes.emplace_back(Attribute{"", key, value});
       }
       else
         error = true;
     }
-    else if (args[i] == "-r"){
+    else if (args[i] == "-r") {
       if (i + 1 < args.size()) {
         relations.push_back(args[i+1]);
       }
@@ -251,6 +287,7 @@ void DGDB::setNode(std::vector<std::string> args) {
     else
       error = true;
   }
+
   if (error) {
     std::cout << "[ERROR] Invalid input!" << std::endl;
     return;
@@ -261,7 +298,7 @@ void DGDB::setNode(std::vector<std::string> args) {
 }
 
 void DGDB::parseNewNode(std::string nameA, int conn,
-                        std::vector<std::pair<std::string, std::string>> attributes,
+                        std::vector<Attribute> attributes,
                         std::vector<std::string> relations) {
   //string tmp = nameA + "-" + nameB;
   //int n = write(socketCliente,tmp.c_str(),tmp.length());
@@ -291,22 +328,22 @@ void DGDB::parseNewNode(std::string nameA, int conn,
   buffer += char('0' + relations.size());
   buffer += char('0' + attributes.size());
 
-  for (std::string &node : relations) {
+  for (std::string& node : relations) {
     sprintf(tamano, "%03lu", node.length());
     buffer += std::string(tamano) + node;
   }
 
-  for (auto &attr : attributes) {
-    sprintf(tamano, "%03lu", attr.first.length());
-    buffer += std::string(tamano) + attr.first;
-    sprintf(tamano, "%03lu", attr.second.length());
-    buffer += std::string(tamano) + attr.second;
+  for (auto& attr : attributes) {
+    sprintf(tamano, "%03lu", attr.key.length());
+    buffer += std::string(tamano) + attr.key;
+    sprintf(tamano, "%03lu", attr.value.length());
+    buffer += std::string(tamano) + attr.value;
   }
 
   Network::TCPSocket conn_sock(conn);
   int n = conn_sock.Send(buffer.c_str(), buffer.length());
 
-  if (n > 0 && n != buffer.length()) {
+  if (n > 0 && (size_t)n != buffer.length()) {
     perror("error listen failed\n");
   }
 }
@@ -343,7 +380,7 @@ void DGDB::registerRepository() {
   int n = main_socket.Send(buffer.c_str(), buffer.length());
   std::cout << "*4*" << std::endl;
 
-  if (n > 0 && n != buffer.length()) {
+  if (n > 0 && (size_t)n != buffer.length()) {
     std::cout << "Registing Repository:[" << buffer << "] failed" << std::endl;
   }
 

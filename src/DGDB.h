@@ -19,12 +19,17 @@
 #include <algorithm>
 
 #include "network/Network.h"
+#include "DBSchema.h"
 
 class DGDB {
  private:
+  using Storage = decltype(InitStorage("dgdb_data.sqlite3"));
+
   Network::TCPSocket server_socket;
   Network::TCPSocket client_socket;
   Network::TCPSocket repository_socket;
+
+  Storage storage;
 
   int port;
   std::string ip;
@@ -47,7 +52,7 @@ class DGDB {
   void connMasterRepository(int pPort, std::string pIp);
 
  public:
-  DGDB(char Pmode='S') {
+  explicit DGDB(char Pmode='S') : storage(InitStorage("./dgdb_data.sqlite3")) {
     mode = Pmode;
     ip="127.0.0.1";
     port=50000;
@@ -89,9 +94,8 @@ class DGDB {
   // CRUD DGDB
   void setNode(std::vector<std::string> args);
   void parseNewNode(std::string nameA, int conn=0,
-                    std::vector<std::pair<std::string, std::string>> attributes = {},
+                    std::vector<Attribute> attributes = {},
                     std::vector<std::string> relations = {});
-
 };
 
 #endif
