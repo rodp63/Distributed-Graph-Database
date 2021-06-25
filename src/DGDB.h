@@ -18,13 +18,65 @@
 #include <vector>
 #include <algorithm>
 
+#include "thirdparty/sqlite_orm/sqlite_orm.h"
 #include "network/Network.h"
+
+struct Node {
+  int id;
+  std::string name;
+};
+
+struct Attribute {
+  int id_node;
+  std::string key;
+  std::string value;
+
+  Attribute (int id_node, const std::string& key, const std::string& value) :
+    id_node(id_node), key(key), value(value) {}
+};
+
+struct Relation {
+  int id_node1;
+  int id_node2;
+};
+
+inline auto InitStorage(const std::string& path) {
+  using namespace sqlite_orm;
+  auto storage = make_storage(path,
+                              make_table("Nodes",
+                                         make_column("id",
+                                             &Node::id,
+                                             primary_key()),
+                                         make_column("name",
+                                             &Node::name,
+                                             unique())),
+                              make_table("Attributes",
+                                         make_column("id_node",
+                                             &Attribute::id_node),
+                                         make_column("key",
+                                             &Attribute::key),
+                                         make_column("value",
+                                             &Attribute::value)),
+                              make_table("Relations",
+                                         make_column("id_node1",
+                                             &Relation::id_node1),
+                                         make_column("id_node2",
+                                             &Relation::id_node2)));
+
+  storage.sync_schema();
+
+  return storage;
+}
 
 class DGDB {
  private:
+  using Storage = decltype(InitStorage("dgdb_data.sqlite3"));
+
   Network::TCPSocket server_socket;
   Network::TCPSocket client_socket;
   Network::TCPSocket repository_socket;
+
+  Storage storage;
 
   int port;
   std::string ip;
@@ -47,7 +99,7 @@ class DGDB {
   void connMasterRepository(int pPort, std::string pIp);
 
  public:
-  DGDB(char Pmode='S') {
+  explicit DGDB(char Pmode='S') : storage(InitStorage("./dgdb_data.sqlite3")) {
     mode = Pmode;
     ip="127.0.0.1";
     port=50000;
@@ -90,7 +142,8 @@ class DGDB {
   void setNode(std::string name);
   void setRelation(std::vector<std::string> args);
   void createRelation(std::string nameA, std::string nameB, int conn=0,
-                      std::vector<std::pair<std::string, std::string>> attributes = {});
+                      // std::vector<std::pair<std::string, std::string>> attributes = {});
+                      std::vector<Attribute> attributes = {});
 
   ///  Protocolo
   void createNode(std::string name, int conn=0);

@@ -7,7 +7,8 @@ void DGDB::runConnection(int Pconnection) {
   char buffer[1024];
   char bufferB[1024];
   char bufferA[1024];
-  std::vector<std::pair<std::string, std::string>> attributes;
+  // std::vector<std::pair<std::string, std::string>> attributes;
+  std::vector<Attribute> attributes;
   connections[Pconnection] = "";
   std::string data;
   bool existeRelaciones = false;
@@ -83,7 +84,7 @@ void DGDB::runConnection(int Pconnection) {
             n = conn_socket.Recv(bufferA, ss);
 
             current.second = bufferA;
-            attributes.push_back(current);
+            attributes.push_back({-1, current.first, current.second});
           }
 
           buffer[s - 2] = '\0';
@@ -113,11 +114,18 @@ void DGDB::runConnection(int Pconnection) {
           std::cout << "xxxx" << std::endl;
         }
         else if (repository) {
+          Node nodeA {-1, data};
+          Node nodeB {-1, bufferB};
+          nodeA.id = storage.insert(nodeA);
+          nodeB.id = storage.insert(nodeB);
+
           std::cout << "Store:" << data << "-" << bufferB << std::endl;
           std::cout << "Attributes\n";
 
           for (auto& attr : attributes) {
-            std::cout << "-> " << attr.first << " : " << attr.second << std::endl;
+            std::cout << "-> " << attr.key << " : " << attr.value << std::endl;
+            attr.id_node = nodeA.id;
+            storage.insert(attr);
           }
 
           attributes.clear();
@@ -239,7 +247,8 @@ void DGDB::setNode(std::string name) {
 void DGDB::setRelation(std::vector<std::string> args) {
   std::reverse(args.begin(), args.end());
   std::string nameA = args[0], nameB;
-  std::vector<std::pair<std::string, std::string>> attributes;
+  // std::vector<std::pair<std::string, std::string>> attributes;
+  std::vector<Attribute> attributes;
 
   for (int i = 1; i < args.size(); i += 2) {
     if (args[i] != "-a") {
@@ -251,7 +260,7 @@ void DGDB::setRelation(std::vector<std::string> args) {
       int equal_pos = args[i+1].find('=');
       std::string key = args[i+1].substr(0, equal_pos);
       std::string value = args[i+1].substr(equal_pos + 1);
-      attributes.emplace_back(key, value);
+      attributes.emplace_back(-1, key, value);
     }
     else {
       nameB = "!!!!!!";
@@ -268,7 +277,8 @@ void DGDB::setRelation(std::vector<std::string> args) {
 }
 
 void DGDB::createRelation(std::string nameA, std::string nameB, int conn,
-                          std::vector<std::pair<std::string, std::string>> attributes) {
+                          // std::vector<std::pair<std::string, std::string>> attributes) {
+                          std::vector<Attribute> attributes) {
   //string tmp = nameA + "-" + nameB;
   //int n = write(socketCliente,tmp.c_str(),tmp.length());
 
@@ -304,13 +314,13 @@ void DGDB::createRelation(std::string nameA, std::string nameB, int conn,
 
   //C004julio01004UCSP
 
-  for (auto attr : attributes) {
-    sprintf(tamano, "%03lu", attr.first.length());
+  for (const auto& attr : attributes) {
+    sprintf(tamano, "%03lu", attr.key.length());
     tmp = tamano;
-    buffer = buffer + tmp + attr.first;
-    sprintf(tamano, "%03lu", attr.second.length());
+    buffer = buffer + tmp + attr.key;
+    sprintf(tamano, "%03lu", attr.value.length());
     tmp = tamano;
-    buffer = buffer + tmp + attr.second;
+    buffer = buffer + tmp + attr.value;
   }
 
   Network::TCPSocket conn_sock(conn);
