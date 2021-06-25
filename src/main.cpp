@@ -2,8 +2,10 @@
 
 int main(int argc, char* argv[]) {
   DGDB db;
-
-  if (argv[1][0] == 'C') {
+  if (argc == 1) {
+    
+  }
+  else  if (argv[1][0] == 'C') {
     db.setMode('C');
     db.setClient();
     std::vector<std::string> args;
@@ -11,7 +13,7 @@ int main(int argc, char* argv[]) {
       args.push_back(argv[argc-1]);
       argc--;
     }
-    db.setRelation(args);
+    db.setNode(args);
   }
   else if (argv[1][0] == 'S') {
     db.setMode('S');

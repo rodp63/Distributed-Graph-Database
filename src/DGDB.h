@@ -24,20 +24,30 @@
 struct Node {
   int id;
   std::string name;
+
+  Node() {}
+  explicit Node(const std::string& name) : name(name) {}
+  explicit Node(int id, const std::string& name) : id(id), name(name) {}
 };
 
 struct Attribute {
-  int id_node;
+  std::string node_name;
   std::string key;
   std::string value;
 
-  Attribute (int id_node, const std::string& key, const std::string& value) :
-    id_node(id_node), key(key), value(value) {}
+  Attribute() {}
+  Attribute(const std::string& node_name, const std::string& key,
+            const std::string& value) :
+    node_name(node_name), key(key), value(value) {}
 };
 
 struct Relation {
-  int id_node1;
-  int id_node2;
+  std::string node_name1;
+  std::string node_name2;
+
+  Relation() {}
+  Relation(const std::string& node1, const std::string& node2)
+    : node_name1(node1), node_name2(node2) {}
 };
 
 inline auto InitStorage(const std::string& path) {
@@ -46,22 +56,22 @@ inline auto InitStorage(const std::string& path) {
                               make_table("Nodes",
                                          make_column("id",
                                              &Node::id,
-                                             autoincrement()),
+                                             primary_key()),
                                          make_column("name",
                                              &Node::name,
-                                             primary_key())),
+                                             unique())),
                               make_table("Attributes",
-                                         make_column("id_node",
-                                             &Attribute::id_node),
+                                         make_column("node_name",
+                                             &Attribute::node_name),
                                          make_column("key",
                                              &Attribute::key),
                                          make_column("value",
                                              &Attribute::value)),
                               make_table("Relations",
-                                         make_column("id_node1",
-                                             &Relation::id_node1),
-                                         make_column("id_node2",
-                                             &Relation::id_node2)));
+                                         make_column("node_name1",
+                                             &Relation::node_name1),
+                                         make_column("node_name2",
+                                             &Relation::node_name2)));
 
   storage.sync_schema();
 
@@ -139,16 +149,10 @@ class DGDB {
   void registerRepository();
 
   // CRUD DGDB
-  void setNode(std::string name);
-  void setRelation(std::vector<std::string> args);
-  void createRelation(std::string nameA, std::string nameB, int conn=0,
-                      // std::vector<std::pair<std::string, std::string>> attributes = {});
-                      std::vector<Attribute> attributes = {});
-
-  ///  Protocolo
-  void createNode(std::string name, int conn=0);
-  void createNodeAttrite(std::string name, int conn, std::string attriteName,
-                         std::string attriteValue);
+  void setNode(std::vector<std::string> args);
+  void parseNewNode(std::string nameA, int conn=0,
+                    std::vector<Attribute> attributes = {},
+                    std::vector<std::string> relations = {});
 };
 
 #endif
