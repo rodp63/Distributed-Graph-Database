@@ -114,17 +114,11 @@ void DGDB::runConnection(int Pconnection) {
           std::cout << "xxxx" << std::endl;
         }
         else if (repository) {
-          Node nodeA {-1, data};
-          Node nodeB {-1, bufferB};
-          nodeA.id = storage.insert(nodeA);
-          nodeB.id = storage.insert(nodeB);
-
           std::cout << "Store:" << data << "-" << bufferB << std::endl;
           std::cout << "Attributes\n";
 
           for (auto& attr : attributes) {
             std::cout << "-> " << attr.key << " : " << attr.value << std::endl;
-            attr.id_node = nodeA.id;
             storage.insert(attr);
           }
 
