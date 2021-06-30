@@ -96,6 +96,9 @@ class DGDB {
   void parseNewNode(std::string nameA, int conn=0,
                     std::vector<Attribute> attributes = {},
                     std::vector<std::string> relations = {});
+  void setQuery(std::vector<std::string> args);
+  void parseNewQuery(std::string nameA, int depth, bool leaf, bool attr,
+                  int conn=0, std::vector<Condition> conditions = {});
 };
 
 #endif

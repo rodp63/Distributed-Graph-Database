@@ -9,8 +9,6 @@ void DGDB::runConnection(int Pconnection) {
   int s, ss;
   char buffer[1024];
   char bufferAux[1024];
-  std::vector<Attribute> attributes;
-  std::vector<std::string> relations;
   std::string node_name;
   connections[Pconnection] = "";
   Network::TCPSocket conn_socket(Pconnection);
@@ -19,7 +17,10 @@ void DGDB::runConnection(int Pconnection) {
     n = conn_socket.Recv(buffer, 1);
 
     if (buffer[0] == 'C') {
+      std::vector<Attribute> attributes;
+      std::vector<std::string> relations;
       std::cout << "------------------\nAction: C" << std::endl;
+
       n = conn_socket.Recv(buffer, 3);
 
       if (n < 3) {
@@ -130,7 +131,7 @@ void DGDB::runConnection(int Pconnection) {
 
             try {
               auto node = storage.get_all<Node>(sq::where(sq::c(&Node::name) =
-                                                  related_node.name));
+                                                          related_node.name));
 
               if (node.empty()) {
                 related_node.id = storage.insert(related_node);
@@ -151,16 +152,98 @@ void DGDB::runConnection(int Pconnection) {
       }
     }
 
-    // else if (buffer[0] == 'R') {
-    // }
+    else if (buffer[0] == 'R') {
+      std::vector<Condition> conditions;
+      int depth;
+      bool leaf, attr;
+      std::cout << "------------------\nAction: R" << std::endl;
+      n = conn_socket.Recv(buffer, 3);
+
+      if (n < 3) {
+        perror("ERROR reading first size\n");
+      }
+      else {
+        buffer[n + 1] = '\0';
+        s = atoi(buffer) + 5;
+      }
+
+      n = conn_socket.Recv(buffer, s);
+
+      if (n < s) {
+        perror("ERROR reading second size\n");
+      }
+      else {
+        bufferAux[0] = buffer[s - 5];
+        bufferAux[1] = '\0';
+        depth = atoi(bufferAux);
+
+        bufferAux[0] = buffer[s - 4];
+        bufferAux[1] = '\0';
+        leaf = atoi(bufferAux);
+
+        bufferAux[0] = buffer[s - 3];
+        bufferAux[1] = '\0';
+        attr = atoi(bufferAux);
+
+        bufferAux[0] = buffer[s - 2];
+        bufferAux[1] = buffer[s - 1];
+        bufferAux[2] = '\0';
+        int cnt = atoi(bufferAux);
+        
+        if (cnt == 0)
+          std::cout << "No se envio condiciones" << std::endl;
+        else {
+          while (cnt--) {
+            Condition current;
+            n = conn_socket.Recv(bufferAux, 3);
+            ss = atoi(bufferAux);
+            n = conn_socket.Recv(bufferAux, ss);
+            current.key = bufferAux;
+
+            n = conn_socket.Recv(bufferAux, 1);
+            current.op = Condition::Operator(atoi(bufferAux));
+
+            n = conn_socket.Recv(bufferAux, 3);
+            ss = atoi(bufferAux);
+            n = conn_socket.Recv(bufferAux, ss);
+            current.value = bufferAux;
+
+            n = conn_socket.Recv(bufferAux, 1);
+            current.is_or = atoi(bufferAux);
+
+            conditions.push_back(current);
+          }
+        }
+
+        buffer[s - 5] = '\0';
+        node_name = buffer;
+
+        if (server) {
+          std::cout << "Query:\n";
+          std::cout << "> Node: " << node_name << "\n";
+          std::cout << "> Depth: " << depth << "\n";
+          std::cout << "> Leaf?: " << leaf << "\n";
+          std::cout << "> Attributes?: " << attr << "\n";
+          if (conditions.size())
+            std::cout << "> Conditions: " << conditions.size() << "\n";
+          for (auto& cond : conditions) {
+            std::cout << "  -> " << cond.key << " "
+                      << cond.op_to_string() << " "
+                      << cond.value << " "
+                      << cond.is_or_to_string() << std::endl;
+          }
+        }
+      }
+    }
 
     else if (buffer[0] == 'U') {
+      
     }
 
     else if (buffer[0] == 'D') {
     }
 
-    else if (buffer[0] == 'R') {
+    else if (buffer[0] == 'E') {
       n = conn_socket.Recv(buffer, 21);
 
       if (n < 21) {
@@ -217,7 +300,7 @@ void DGDB::runServer() {
     std::thread runThread(&DGDB::runMainServer, this);
     runThread.join();
   }
-  else if (mode == 'R') {
+  else if (mode == 'E') {
     std::cout << "RRRRR" << std::endl;
     std::thread runThread(&DGDB::runRepository, this);
     runThread.join();
@@ -259,8 +342,6 @@ void DGDB::setRepository() {
 }
 
 void DGDB::setNode(std::vector<std::string> args) {
-  std::reverse(args.begin(), args.end());
-
   std::string nameA = args[0];
   std::vector<Attribute> attributes;
   std::vector<std::string> relations;
@@ -300,26 +381,6 @@ void DGDB::setNode(std::vector<std::string> args) {
 void DGDB::parseNewNode(std::string nameA, int conn,
                         std::vector<Attribute> attributes,
                         std::vector<std::string> relations) {
-  //string tmp = nameA + "-" + nameB;
-  //int n = write(socketCliente,tmp.c_str(),tmp.length());
-
-  /*
-    int action; // 1B CRUD                  C
-    int name_node_size;// 3B                3
-    char name_node[255];// VB               15151515 (DNI)
-    int number_of_attributes; // 2B         0
-    int number_of_relations;  // 3B         1
-
-    // relations are optional
-    int node_relation_size;  // 3B
-    char node_relations[255];// VB
-
-    int name_attribute_size;  //  3B        13
-    char name_attribute[255]; //  VB        Primer Nombre
-    int value_attribute_size; //  3B        5
-    char value_attribute[255];//  VB        Julio
-  */
-
   char tamano[4];
   sprintf(tamano, "%03lu", nameA.length());
   std::string buffer;
@@ -348,6 +409,89 @@ void DGDB::parseNewNode(std::string nameA, int conn,
   }
 }
 
+void DGDB::setQuery(std::vector<std::string> args) {
+  std::string nameA = args[0];
+  std::vector<Condition> conditions;
+  int depth = 0;
+  bool leaf = false, attr = false, error = false;
+
+  for (size_t i = 1; i < args.size(); ++i) {
+    if (args[i] == "-d") {
+      if (i + 1 < args.size())
+        depth = atoi(args[++i].c_str());
+      else
+        error = true;
+    }
+    else if (args[i] == "-c") {
+      if (i + 1 < args.size()) {
+        ++i;
+        int space_pos = args[i].find(' ');
+        int space_pos_2 = args[i].find(' ', space_pos+3);
+        if (space_pos_2 == std::string::npos)
+          space_pos_2 = args[i].size();
+        std::string key = args[i].substr(0, space_pos);
+        std::string value = args[i].substr(space_pos+3, space_pos_2-space_pos-3);
+        char op = args[i][space_pos+1];
+        char lo = space_pos_2 + 1 < args[i].size() ? args[i][space_pos_2+1] : '&';
+        conditions.emplace_back(key, value, op, lo);
+      }
+      else
+        error = true;
+    }
+    else if (args[i] == "--leaf")
+      leaf = true;
+    else if (args[i] == "--attr")
+      attr = true;
+    else
+      error = true;
+  }
+
+  if (error) {
+    std::cout << "[ERROR] Invalid input!" << std::endl;
+    return;
+  }
+
+  std::cout << "Data sent successfully" << std::endl;
+  parseNewQuery(nameA, depth, leaf, attr, client_socket.GetSocketId(), conditions);
+}
+
+void DGDB::parseNewQuery(std::string nameA, int depth, bool leaf, bool attr,
+                      int conn, std::vector<Condition> conditions) {
+  char tamano[4];
+  sprintf(tamano, "%03lu", nameA.length());
+  std::string buffer;
+
+  buffer = "R" + std::string(tamano) + nameA;
+
+  sprintf(tamano, "%01lu", (long)depth);
+  buffer += std::string(tamano);
+
+  buffer += leaf ? '1' : '0';
+  buffer += attr ? '1' : '0';
+
+  sprintf(tamano, "%02lu", conditions.size());
+  buffer += std::string(tamano);
+
+  for (Condition &condition : conditions) {
+    sprintf(tamano, "%03lu", condition.key.length());
+    buffer += std::string(tamano) + condition.key;
+
+    buffer += std::to_string(int(condition.op));
+
+    sprintf(tamano, "%03lu", condition.value.length());
+    buffer += std::string(tamano) + condition.value;
+
+    buffer += std::to_string(int(condition.is_or));
+  }
+
+  Network::TCPSocket conn_sock(conn);
+  int n = conn_sock.Send(buffer.c_str(), buffer.length());
+
+  if (n > 0 && (size_t)n != buffer.length()) {
+    perror("error listen failed\n");
+  }
+}
+
 /// Protocolo
 
 void DGDB::registerRepository() {
@@ -366,7 +510,7 @@ void DGDB::registerRepository() {
   std::cout << vip << std::endl;
   std::string sport = vport;
   std::string sip = vip;
-  buffer = "R" + sport + sip;
+  buffer = "E" + sport + sip;
   std::cout << "*" << buffer.c_str() << "*" << std::endl;
 
   // Set conn to Main
