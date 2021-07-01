@@ -16,10 +16,18 @@ int main(int argc, char* argv[]) {
       argc--;
     }
     std::reverse(args.begin(), args.end());
+    if (args.empty()) {
+      std::cout << "[ERROR] You must specify a node" << std::endl;
+      return 0;
+    }
     if (argv[1][0] == 'C')
       db.setNode(args);
     else if (argv[1][0] == 'R')
       db.setQuery(args);
+    else if (argv[1][0] == 'U')
+      db.setUpdate(args);
+    else if (argv[1][0] == 'D')
+      db.setDelete(args);
   }
 
   else if (argv[1][0] == 'S') {
