@@ -598,7 +598,8 @@ void DGDB::setUpdate(std::vector<std::string> args) {
   std::string set_value, attr;
   bool is_node = true, error = false;
 
-  for (size_t i = 1; i < args.size(); i += 2) {
+  size_t i = 1;
+  if (i < args.size()) {
     if (args[i] == "--attr") {
       if (i + 1 < args.size()) {
         int equal_pos = args[i+1].find('=');
@@ -611,7 +612,7 @@ void DGDB::setUpdate(std::vector<std::string> args) {
       else
         error = true;
     }
-    else if (args[i] == "--node") {
+    else if (args[i] == "--name") {
       if (i + 1 < args.size())
         set_value = args[i+1];
       else
@@ -620,6 +621,8 @@ void DGDB::setUpdate(std::vector<std::string> args) {
     else
       error = true;
   }
+  else
+    error = true;
 
   if (error) {
     std::cout << "[ERROR] Invalid input!" << std::endl;
@@ -667,7 +670,8 @@ void DGDB::setDelete(std::vector<std::string> args) {
   int object = 0;
   bool error = false;
 
-  for (size_t i = 1; i < args.size(); i += 2) {
+  size_t i = 1;
+  if (i < args.size()) {
     if (args[i] == "--relation") {
       if (i + 1 < args.size()) {
         attr_or_rel = args[i+1];
@@ -684,11 +688,11 @@ void DGDB::setDelete(std::vector<std::string> args) {
       else
         error = true;
     }
-    else if (args[i] == "--node")
-      object = 0;
     else
       error = true;
   }
+  else
+    object = 0;
 
   if (error) {
     std::cout << "[ERROR] Invalid input!" << std::endl;
