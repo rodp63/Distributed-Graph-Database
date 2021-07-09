@@ -158,11 +158,11 @@ int TCPSocket::AcceptConnection() {
   return new_connection;
 }
 
-void TCPSocket::Connect(std::string ip, uint16_t port) {
+void TCPSocket::Connect(std::string ip_addr, uint16_t port) {
   sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
-  int ret = inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
+  int ret = inet_pton(AF_INET, ip_addr.c_str(), &addr.sin_addr);
 
   if (ret < 0) {
     perror("error: first parameter is not a valid address family");
