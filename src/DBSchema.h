@@ -3,6 +3,35 @@
 
 #include "thirdparty/sqlite_orm/sqlite_orm.h"
 
+struct Condition {
+  enum Operator {EQUAL, LESS, GREATER, LIKE};
+
+  std::string key;
+  std::string value;
+  Operator op;
+  bool is_or;
+  
+  Condition() {}
+  Condition(const std::string& _key, const std::string& _value, char _op, char _lo)
+      : key(_key), value(_value)  {
+        is_or = _lo == '|' ? true : false;
+        if (_op == '=') op = EQUAL;
+        if (_op == '<') op = LESS;
+        if (_op == '>') op = GREATER;
+        if (_op == '%') op = LIKE;
+      }
+  std::string op_to_string() {
+    if (op == EQUAL) return "=";
+    if (op == LESS) return "<";
+    if (op == GREATER) return ">";
+    if (op == LIKE) return "%";
+    return "~";
+  }
+  std::string is_or_to_string() {
+    return is_or ? "|" : "&";
+  }
+};
+
 struct Node {
   int id;
   std::string name;
