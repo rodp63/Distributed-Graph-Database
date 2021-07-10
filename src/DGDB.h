@@ -1,5 +1,5 @@
-#ifndef HEADER_DGDB
-#define HEADER_DGDB
+#ifndef DGDB_H_
+#define DGDB_H_
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -25,7 +25,7 @@ class DGDB {
  private:
   using Storage = decltype(InitStorage("dgdb_data.sqlite3"));
 
-  Network::TCPSocket server_socket;
+  Network::UDPSocket server_socket;
   Network::TCPSocket client_socket;
   Network::TCPSocket repository_socket;
 
@@ -48,7 +48,8 @@ class DGDB {
 
   void runMainServer();
 
-  void runConnection(int Pconnection);
+  void runConnection1(int Pconnection);
+  void runConnection();
   void connMasterRepository(int pPort, std::string pIp);
 
  public:
@@ -110,4 +111,4 @@ class DGDB {
                       std::string attr_or_rel = "");
 };
 
-#endif
+#endif  // DGDB_H_

@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <utility>
 
 namespace Network {
 
@@ -33,7 +34,7 @@ void UDPSocket::SendTo(const std::string& ip_addr, uint16_t port,
   }
 }
 
-int UDPSocket::RecvFrom(char* buffer, int len, int flags) {
+std::pair<int, sockaddr_in> UDPSocket::RecvFrom(char* buffer, int len, int flags) {
   sockaddr_in from;
   int size = sizeof(from);
   int ret = recvfrom(sock, buffer, len, flags,
@@ -47,7 +48,7 @@ int UDPSocket::RecvFrom(char* buffer, int len, int flags) {
   }
 
   buffer[ret] = '\0';
-  return ret;
+  return std::make_pair(ret, from);
 }
 
 void UDPSocket::Bind(uint16_t port) {
@@ -63,6 +64,14 @@ void UDPSocket::Bind(uint16_t port) {
     close(sock);
     exit(1);
   }
+}
+
+void UDPSocket::Shutdown(int flags) {
+  shutdown(sock, flags);
+}
+
+void UDPSocket::Close() {
+  close(sock);
 }
 
 void TCPSocket::Init() {

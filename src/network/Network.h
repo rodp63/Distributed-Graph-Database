@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
+#include <netinet/in.h>
 
 namespace Network {
 
@@ -15,8 +17,10 @@ class UDPSocket {
 
   void SendTo(const std::string& ip_addr, uint16_t port,
               const char* buffer, int len, int flags=0);
-  int RecvFrom(char* buffer, int len, int flags=0);
+  std::pair<int, sockaddr_in> RecvFrom(char* buffer, int len, int flags=0);
   void Bind(uint16_t port);
+  void Shutdown(int flags=0);
+  void Close();
 };
 
 class TCPSocket {

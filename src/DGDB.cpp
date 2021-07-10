@@ -1,218 +1,201 @@
+#include <string>
 #include "DGDB.h"
 #include "tools.h"
 #include "thirdparty/sqlite_orm/sqlite_orm.h"
 
 namespace sq = sqlite_orm;
 
-void DGDB::runConnection(int Pconnection) {
-  int n;
+void DGDB::runConnection1(int Pconnection) {}
+
+void DGDB::runConnection() {
   int s, ss;
   char buffer[1024];
-  char bufferAux[1024];
+  std::string s_buffer;
+  std::string bufferAux;
   std::string node_name;
-  connections[Pconnection] = "";
-  Network::TCPSocket conn_socket(Pconnection);
+  // connections[Pconnection] = "";
 
   while (server || repository) {
-    n = conn_socket.Recv(buffer, 1);
+    auto [n, from_addr] = server_socket.RecvFrom(buffer, 1000);
+    s_buffer = buffer;
 
-    if (buffer[0] == 'C') {
+    if (s_buffer[0] == 'C') {
+      s_buffer.erase(0, 1);
       std::vector<Attribute> attributes;
       std::vector<std::string> relations;
       std::cout << "------------------\nAction: C" << std::endl;
 
-      n = conn_socket.Recv(buffer, 3);
+      s = stoi(s_buffer.substr(0, 3)) + 2;
+      s_buffer.erase(0, 3);
 
-      if (n < 3) {
-        perror("ERROR reading first size\n");
+      if (s_buffer[s - 2] == '0') {
+        std::cout << "No se envio relaciones" << std::endl;
       }
       else {
-        buffer[n + 1] = '\0';
-        s = atoi(buffer) + 2;
+        bufferAux = s_buffer[s - 2];
+        int cantidad = stoi(bufferAux);
+
+        while (cantidad--) {
+          ss = stoi(s_buffer.substr(s, 3));
+          s_buffer.erase(s, 3);
+
+          relations.push_back(s_buffer.substr(s, ss));
+          s_buffer.erase(s, ss);
+        }
       }
 
-      n = conn_socket.Recv(buffer, s);
-
-      if (n < s) {
-        perror("ERROR reading second size\n");
+      if (s_buffer[s - 1] == '0') {
+        std::cout << "No se envio atributos" << std::endl;
       }
       else {
-        if (buffer[s - 2] == '0') {
-          std::cout << "No se envio relaciones" << std::endl;
+        bufferAux = s_buffer[s - 1];
+        int cantidad = stoi(bufferAux);
+
+        while (cantidad--) {
+          std::pair<std::string, std::string> current;
+          ss = stoi(s_buffer.substr(s, 3));
+          s_buffer.erase(0, 3);
+
+          current.first = s_buffer.substr(s, ss);
+          s_buffer.erase(0, ss);
+
+          ss = stoi(s_buffer.substr(s, 3));
+          s_buffer.erase(0, 3);
+
+          current.second = s_buffer.substr(s, ss);
+          s_buffer.erase(0, ss);
+
+          attributes.push_back({"", current.first, current.second});
+        }
+      }
+
+      node_name = s_buffer.substr(0, s - 2);
+
+      if (server) {
+        // enviar al  Repository
+        // determinar que repository
+        int r;
+
+        if (socketRepositories.size() < 2) {
+          std::cout << "Repository has not been attached." << std::endl;
+          return;
         }
         else {
-          bufferAux[0] = buffer[s - 2];
-          bufferAux[1] = '\0';
-          int cantidad = atoi(bufferAux);
-
-          while (cantidad--) {
-            n = conn_socket.Recv(bufferAux, 3);
-            ss = atoi(bufferAux);
-            n = conn_socket.Recv(bufferAux, ss);
-            relations.push_back(std::string(bufferAux));
-          }
+          r = s_buffer[0] % (socketRepositories.size() - 1);
         }
 
-        if (buffer[s - 1] == '0') {
-          std::cout << "No se envio atributos" << std::endl;
+        r++;
+
+        std::cout << "Sending: [" << node_name << "]" << std::endl;
+        parseNewNode(node_name, socketRepositories[r], attributes, relations);
+      }
+      else if (repository) {
+        Node new_node{node_name};
+        std::cout << new_node.name << std::endl;
+
+        try {
+          storage.insert(new_node);
         }
-        else {
-          bufferAux[0] = buffer[s - 1];
-          bufferAux[1] = '\0';
-          int cantidad = atoi(bufferAux);
-
-          while (cantidad--) {
-            std::pair<std::string, std::string> current;
-            n = conn_socket.Recv(bufferAux, 3);
-            ss = atoi(bufferAux);
-            n = conn_socket.Recv(bufferAux, ss);
-            current.first = bufferAux;
-
-            n = conn_socket.Recv(bufferAux, 3);
-            ss = atoi(bufferAux);
-            n = conn_socket.Recv(bufferAux, ss);
-            current.second = bufferAux;
-
-            attributes.push_back({"", current.first, current.second});
-          }
+        catch (std::system_error e) {
+          std::cout << e.what() << std::endl;
+          continue;
         }
 
-        buffer[s - 2] = '\0';
-        node_name = buffer;
+        std::cout << "Store: " << node_name << std::endl;
 
-        if (server) {
-          // enviar al  Repository
-          // determinar que repository
-          int r;
-          if (socketRepositories.size() < 2) {
-            std::cout << "Repository has not been attached." << std::endl;
-            return;
-          }
-          else
-            r = buffer[0] % (socketRepositories.size() - 1);
+        if (attributes.size())
+          std::cout << "Attributes:\n";
 
-          r++;
-
-          std::cout << "Sending: [" << node_name << "]" << std::endl;
-          parseNewNode(node_name, socketRepositories[r], attributes, relations);
+        for (auto& attr : attributes) {
+          attr.node_name = node_name;
+          std::cout << "-> " << attr.key << " : " << attr.value << std::endl;
+          storage.insert(attr);
         }
-        else if (repository) {
-          Node new_node{node_name};
-          std::cout << new_node.name << std::endl;
+
+        if (relations.size())
+          std::cout << "Relations:\n";
+
+        for (const auto& rel : relations) {
+          Node related_node{rel};
 
           try {
-            storage.insert(new_node);
+            auto node = storage.get_all<Node>(sq::where(sq::c(&Node::name) =
+                                                related_node.name));
+
+            if (node.empty()) {
+              related_node.id = storage.insert(related_node);
+            }
           }
           catch (std::system_error e) {
             std::cout << e.what() << std::endl;
-            continue;
           }
 
-          std::cout << "Store: " << node_name << std::endl;
-
-          if (attributes.size())
-            std::cout << "Attributes:\n";
-
-          for (auto& attr : attributes) {
-            attr.node_name = node_name;
-            std::cout << "-> " << attr.key << " : " << attr.value << std::endl;
-            storage.insert(attr);
-          }
-
-          if (relations.size())
-            std::cout << "Relations:\n";
-
-          for (const auto& rel : relations) {
-            Node related_node{rel};
-
-            try {
-              auto node = storage.get_all<Node>(sq::where(sq::c(&Node::name) =
-                                                          related_node.name));
-
-              if (node.empty()) {
-                related_node.id = storage.insert(related_node);
-              }
-            }
-            catch (std::system_error e) {
-              std::cout << e.what() << std::endl;
-            }
-
-            Relation new_relation{new_node.name, related_node.name};
-            storage.insert(new_relation);
-            std::cout << "> " << rel << std::endl;
-          }
-
-          attributes.clear();
-          relations.clear();
+          Relation new_relation{new_node.name, related_node.name};
+          storage.insert(new_relation);
+          std::cout << "> " << rel << std::endl;
         }
+
+        attributes.clear();
+        relations.clear();
       }
     }
 
-    else if (buffer[0] == 'R') {
+    else if (s_buffer[0] == 'R') {
+      s_buffer.erase(0, 1);
       std::vector<Condition> conditions;
       int depth;
       bool leaf, attr;
       std::cout << "------------------\nAction: R" << std::endl;
-      n = conn_socket.Recv(buffer, 3);
 
-      if (n < 3) {
-        perror("ERROR reading first size\n");
-      }
-      else {
-        buffer[n + 1] = '\0';
-        s = atoi(buffer) + 5;
-      }
-
-      n = conn_socket.Recv(buffer, s);
+      s = stoi(s_buffer.substr(0, 3)) + 5;
+      s_buffer.erase(0, 3);
 
       if (n < s) {
         perror("ERROR reading second size\n");
       }
       else {
-        bufferAux[0] = buffer[s - 5];
-        bufferAux[1] = '\0';
-        depth = atoi(bufferAux);
+        bufferAux = s_buffer[s - 5];
+        depth = stoi(bufferAux);
 
-        bufferAux[0] = buffer[s - 4];
-        bufferAux[1] = '\0';
-        leaf = atoi(bufferAux);
+        bufferAux = s_buffer[s - 4];
+        leaf = stoi(bufferAux);
 
-        bufferAux[0] = buffer[s - 3];
-        bufferAux[1] = '\0';
-        attr = atoi(bufferAux);
+        bufferAux = s_buffer[s - 3];
+        attr = stoi(bufferAux);
 
-        bufferAux[0] = buffer[s - 2];
-        bufferAux[1] = buffer[s - 1];
-        bufferAux[2] = '\0';
-        int cnt = atoi(bufferAux);
-        
+        bufferAux = s_buffer[s - 2];
+        bufferAux += s_buffer[s - 1];
+        int cnt = stoi(bufferAux);
+
         if (cnt == 0)
           std::cout << "No se envio condiciones" << std::endl;
         else {
           while (cnt--) {
             Condition current;
-            n = conn_socket.Recv(bufferAux, 3);
-            ss = atoi(bufferAux);
-            n = conn_socket.Recv(bufferAux, ss);
-            current.key = bufferAux;
 
-            n = conn_socket.Recv(bufferAux, 1);
-            current.op = Condition::Operator(atoi(bufferAux));
+            ss = stoi(s_buffer.substr(s, 3));
+            s_buffer.erase(s, 3);
 
-            n = conn_socket.Recv(bufferAux, 3);
-            ss = atoi(bufferAux);
-            n = conn_socket.Recv(bufferAux, ss);
-            current.value = bufferAux;
+            current.key = s_buffer.substr(s, ss);
+            s_buffer.erase(s, ss);
 
-            n = conn_socket.Recv(bufferAux, 1);
-            current.is_or = atoi(bufferAux);
+            current.op = Condition::Operator(s_buffer[s] - '0');
+            s_buffer.erase(s, 1);
+
+            ss = stoi(s_buffer.substr(s, 3));
+            s_buffer.erase(s, 3);
+
+            current.value = s_buffer.substr(s, ss);
+            s_buffer.erase(s, ss);
+
+            current.is_or = s_buffer[s] - '0';
+            s_buffer.erase(s, 1);
 
             conditions.push_back(current);
           }
         }
 
-        buffer[s - 5] = '\0';
-        node_name = buffer;
+        node_name = s_buffer.substr(0, s - 5);
 
         if (server) {
           std::cout << "Query:\n";
@@ -220,8 +203,10 @@ void DGDB::runConnection(int Pconnection) {
           std::cout << "> Depth: " << depth << "\n";
           std::cout << "> Leaf?: " << leaf << "\n";
           std::cout << "> Attributes?: " << attr << "\n";
+
           if (conditions.size())
             std::cout << "> Conditions: " << conditions.size() << "\n";
+
           for (auto& cond : conditions) {
             std::cout << "  -> " << cond.key << " "
                       << cond.op_to_string() << " "
@@ -232,49 +217,48 @@ void DGDB::runConnection(int Pconnection) {
       }
     }
 
-    else if (buffer[0] == 'U') {
+    else if (s_buffer[0] == 'U') {
+      s_buffer.erase(0, 1);
       std::string set_value, attr;
       bool is_node;
       std::cout << "------------------\nAction: U" << std::endl;
 
-      n = conn_socket.Recv(buffer, 1);
-      buffer[n + 1] = '\0';
-      is_node = atoi(buffer);
+      is_node = s_buffer[0] - '0';
+      s_buffer.erase(0, 1);
 
-      n = conn_socket.Recv(buffer, 3);
-      buffer[n + 1] = '\0';
-      s = atoi(buffer);
-      n = conn_socket.Recv(buffer, s);
+      s = stoi(s_buffer.substr(0, 3));
+      s_buffer.erase(0, 3);
 
       if (is_node) {
-        n = conn_socket.Recv(bufferAux, 3);
-        ss = atoi(bufferAux);
-        n = conn_socket.Recv(bufferAux, ss);
-        set_value = bufferAux;
+        ss = stoi(s_buffer.substr(s, 3));
+        s_buffer.erase(s, 3);
+
+        set_value = s_buffer.substr(s, ss);
+        s_buffer.erase(s, ss);
       }
       else {
-        n = conn_socket.Recv(bufferAux, 3);
-        ss = atoi(bufferAux);
-        n = conn_socket.Recv(bufferAux, ss);
-        attr = bufferAux;
+        ss = stoi(s_buffer.substr(s, 3));
+        s_buffer.erase(s, 3);
+        attr = s_buffer.substr(s, ss);
+        s_buffer.erase(s, ss);
 
-        n = conn_socket.Recv(bufferAux, 3);
-        ss = atoi(bufferAux);
-        n = conn_socket.Recv(bufferAux, ss);
-        set_value = bufferAux;
+        ss = stoi(s_buffer.substr(s, 3));
+        s_buffer.erase(s, 3);
+        set_value = s_buffer.substr(s, ss);
+        s_buffer.erase(s, ss);
       }
 
-      buffer[s] = '\0';
-      node_name = buffer;
+      node_name = s_buffer.substr(0, s);
 
       if (server) {
         int r;
+
         if (socketRepositories.size() < 2) {
           std::cout << "Repository has not been attached." << std::endl;
           return;
         }
         else
-          r = buffer[0] % (socketRepositories.size() - 1);
+          r = s_buffer[0] % (socketRepositories.size() - 1);
 
         r++;
 
@@ -284,6 +268,7 @@ void DGDB::runConnection(int Pconnection) {
       else if (repository) {
         std::cout << "Update:\n";
         std::cout << "> Node: " << node_name << "\n";
+
         if (is_node) {
           std::cout << "  > New name: " << set_value << "\n";
         }
@@ -294,38 +279,34 @@ void DGDB::runConnection(int Pconnection) {
       }
     }
 
-    else if (buffer[0] == 'D') {
+    else if (s_buffer[0] == 'D') {
+      s_buffer.erase(0, 1);
       std::string attr_or_rel;
       int object;
       std::cout << "------------------\nAction: D" << std::endl;
 
-      n = conn_socket.Recv(buffer, 1);
-      buffer[n + 1] = '\0';
-      object = atoi(buffer);
+      object = s_buffer[0] - '0';
+      s_buffer.erase(0, 1);
 
-      n = conn_socket.Recv(buffer, 3);
-      buffer[n + 1] = '\0';
-      s = atoi(buffer);
-      n = conn_socket.Recv(buffer, s);
+      s = stoi(s_buffer.substr(0, 3));
+      s_buffer.erase(0, 3);
 
       if (object > 0) {
-        n = conn_socket.Recv(bufferAux, 3);
-        ss = atoi(bufferAux);
-        n = conn_socket.Recv(bufferAux, ss);
-        attr_or_rel = bufferAux;
+        ss = stoi(s_buffer.substr(s, 3));
+        attr_or_rel = stoi(s_buffer.substr(s, ss));
       }
 
-      buffer[s] = '\0';
-      node_name = buffer;
+      node_name = s_buffer.substr(0, s);
 
       if (server) {
         int r;
+
         if (socketRepositories.size() < 2) {
           std::cout << "Repository has not been attached." << std::endl;
           return;
         }
         else
-          r = buffer[0] % (socketRepositories.size() - 1);
+          r = s_buffer[0] % (socketRepositories.size() - 1);
 
         r++;
 
@@ -335,65 +316,50 @@ void DGDB::runConnection(int Pconnection) {
       else if (repository) {
         std::cout << "Delete:\n";
         std::cout << "> Node: " << node_name << "\n";
+
         if (object == 2) {
           std::cout << "  > Relation: " << attr_or_rel << "\n";
         }
-        else if (object == 1){
+        else if (object == 1) {
           std::cout << "  > Attribute: " << attr_or_rel << "\n";
         }
       }
     }
 
-    else if (buffer[0] == 'E') {
-      n = conn_socket.Recv(buffer, 21);
+    else if (s_buffer[0] == 'E') {
+      s_buffer.erase(0, 1);
+      std::string vIp;
+      int vPort;
 
-      if (n < 21) {
-        perror("ERROR reading size in Repository command\n");
-        printf("n = %d\n%s\n", n, buffer);
+      vPort = stoi(s_buffer.substr(0, 5));
+      s_buffer.erase(0, 5);
+
+      vIp = s_buffer.substr(0, 16);
+      s_buffer.erase(0, 16);
+
+      trim(vIp);
+      connMasterRepository(vPort, vIp);
+
+      if (repository) {
+        socketRepositories.push_back(repository_socket.GetSocketId());
+        std::cout << "Repository registed." << std::endl;
       }
-      else {
-        char vIp[17];
-        char vPort[6];
-        int vPort_int;
-        char* pbuffer;
-
-        strncpy(vPort, buffer, 5);
-        vPort_int = atoi(vPort);
-
-        pbuffer = &buffer[5];
-        strncpy(vIp, pbuffer, 16);
-        buffer[16] = '\0';
-
-        std::string vIp_string = vIp;
-        trim(vIp_string);
-
-        connMasterRepository(vPort_int, vIp_string);
-
-        if (repository) {
-          socketRepositories.push_back(repository_socket.GetSocketId());
-          std::cout << "Repository registed." << std::endl;
-        }
-        else
-          perror("ERROR no se pudo registrar Repositorio\n");
-      }
+      else
+        perror("ERROR no se pudo registrar Repositorio\n");
     }
-
-    //n = write(ConnectFD,"I got your message",18);
-    //if (n < 0) perror("ERROR writing to socket");
-    /* perform read write operations ... */
   }
 
-  connections.erase(Pconnection);
-  shutdown(Pconnection, SHUT_RDWR);
-  close(Pconnection);
+  //n = write(ConnectFD,"I got your message",18);
+  //if (n < 0) perror("ERROR writing to socket");
+  /* perform read write operations ... */
+
+  // connections.erase(Pconnection);
+  // shutdown(Pconnection, SHUT_RDWR);
+  // close(Pconnection);
 }
 
 void DGDB::runMainServer() {
-  for (;;) {
-    int new_connection = server_socket.AcceptConnection();
-
-    std::thread(&DGDB::runConnection, this, new_connection).detach();
-  }
+  runConnection();
 }
 
 void DGDB::runServer() {
@@ -421,15 +387,15 @@ void DGDB::closeClient() {
 }
 
 void DGDB::setServer() {
-  server_socket.Init();
+  // server_socket.Init();
   server_socket.Bind(port);
-  server_socket.SetListenerSocket();
+  // server_socket.SetListenerSocket();
   server = 1;
 }
 
 void DGDB::closeServer() {
   server = 0;
-  server_socket.Close();
+  // server_socket.Close();
 }
 
 void DGDB::setRepository() {
@@ -528,8 +494,10 @@ void DGDB::setQuery(std::vector<std::string> args) {
         ++i;
         int space_pos = args[i].find(' ');
         int space_pos_2 = args[i].find(' ', space_pos+3);
+
         if (space_pos_2 == std::string::npos)
           space_pos_2 = args[i].size();
+
         std::string key = args[i].substr(0, space_pos);
         std::string value = args[i].substr(space_pos+3, space_pos_2-space_pos-3);
         char op = args[i][space_pos+1];
@@ -553,7 +521,8 @@ void DGDB::setQuery(std::vector<std::string> args) {
   }
 
   std::cout << "Data sent successfully" << std::endl;
-  parseNewQuery(nameA, depth, leaf, attr, client_socket.GetSocketId(), conditions);
+  parseNewQuery(nameA, depth, leaf, attr, client_socket.GetSocketId(),
+                conditions);
 }
 
 void DGDB::parseNewQuery(std::string nameA, int depth, bool leaf, bool attr,
@@ -573,7 +542,7 @@ void DGDB::parseNewQuery(std::string nameA, int depth, bool leaf, bool attr,
   sprintf(tamano, "%02lu", conditions.size());
   buffer += std::string(tamano);
 
-  for (Condition &condition : conditions) {
+  for (Condition& condition : conditions) {
     sprintf(tamano, "%03lu", condition.key.length());
     buffer += std::string(tamano) + condition.key;
 
@@ -599,6 +568,7 @@ void DGDB::setUpdate(std::vector<std::string> args) {
   bool is_node = true, error = false;
 
   size_t i = 1;
+
   if (i < args.size()) {
     if (args[i] == "--attr") {
       if (i + 1 < args.size()) {
@@ -633,7 +603,8 @@ void DGDB::setUpdate(std::vector<std::string> args) {
   parseNewUpdate(nameA, is_node, set_value, client_socket.GetSocketId(), attr);
 }
 
-void DGDB::parseNewUpdate(std::string nameA, bool is_node, std::string set_value,
+void DGDB::parseNewUpdate(std::string nameA, bool is_node,
+                          std::string set_value,
                           int conn, std::string attr) {
   char tamano[4];
   sprintf(tamano, "%03lu", nameA.length());
@@ -671,6 +642,7 @@ void DGDB::setDelete(std::vector<std::string> args) {
   bool error = false;
 
   size_t i = 1;
+
   if (i < args.size()) {
     if (args[i] == "--relation") {
       if (i + 1 < args.size()) {
@@ -770,7 +742,7 @@ void DGDB::runRepository() {
   for (;;) {
     int new_connection = repository_socket.AcceptConnection();
 
-    std::thread(&DGDB::runConnection, this, new_connection).detach();
+    std::thread(&DGDB::runConnection1, this, new_connection).detach();
   }
 }
 
