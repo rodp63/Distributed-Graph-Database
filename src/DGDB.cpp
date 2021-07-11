@@ -73,18 +73,18 @@ void DGDB::runConnection() {
         // determinar que repository
         int r;
 
-        if (socketRepositories.size() < 2) {
+        if (repositories.size() < 2) {
           std::cout << "Repository has not been attached." << std::endl;
           return;
         }
         else {
-          r = s_buffer[0] % (socketRepositories.size() - 1);
+          r = s_buffer[0] % (repositories.size() - 1);
         }
 
         r++;
 
         std::cout << "Sending: [" << node_name << "]" << std::endl;
-        parseNewNode(node_name, socketRepositories[r], attributes, relations);
+        parseNewNode(node_name, repositories[r], attributes, relations);
       }
       else if (repository) {
         Node new_node{node_name};
@@ -250,17 +250,17 @@ void DGDB::runConnection() {
       if (server) {
         int r;
 
-        if (socketRepositories.size() < 2) {
+        if (repositories.size() < 2) {
           std::cout << "Repository has not been attached." << std::endl;
           return;
         }
         else
-          r = s_buffer[0] % (socketRepositories.size() - 1);
+          r = s_buffer[0] % (repositories.size() - 1);
 
         r++;
 
         std::cout << "Sending: [" << node_name << "]" << std::endl;
-        parseNewUpdate(node_name, is_node, set_value, socketRepositories[r], attr);
+        parseNewUpdate(node_name, is_node, set_value, repositories[r], attr);
       }
       else if (repository) {
         std::cout << "Update:\n";
@@ -301,17 +301,17 @@ void DGDB::runConnection() {
       if (server) {
         int r;
 
-        if (socketRepositories.size() < 2) {
+        if (repositories.size() < 2) {
           std::cout << "Repository has not been attached." << std::endl;
           return;
         }
         else
-          r = s_buffer[0] % (socketRepositories.size() - 1);
+          r = s_buffer[0] % (repositories.size() - 1);
 
         r++;
 
         std::cout << "Sending: [" << node_name << "]" << std::endl;
-        parseNewDelete(node_name, object, socketRepositories[r], attr_or_rel);
+        parseNewDelete(node_name, object, repositories[r], attr_or_rel);
       }
       else if (repository) {
         std::cout << "Delete:\n";
@@ -341,7 +341,7 @@ void DGDB::runConnection() {
       connMasterRepository(vPort, vIp);
 
       if (repository) {
-        socketRepositories.push_back(Host{vIp, vPort});
+        repositories.push_back(Host{vIp, vPort});
         std::cout << "Repository registed." << std::endl;
       }
       else
@@ -428,7 +428,7 @@ void DGDB::setNode(std::vector<std::string> args) {
   }
 
   std::cout << "Data sent successfully" << std::endl;
-  parseNewNode(nameA, socketRepositories[0], attributes, relations);
+  parseNewNode(nameA, repositories[0], attributes, relations);
 }
 
 void DGDB::parseNewNode(std::string nameA, Host host,
@@ -506,7 +506,7 @@ void DGDB::setQuery(std::vector<std::string> args) {
   }
 
   std::cout << "Data sent successfully" << std::endl;
-  parseNewQuery(nameA, depth, leaf, attr, socketRepositories[0],
+  parseNewQuery(nameA, depth, leaf, attr, repositories[0],
                 conditions);
 }
 
@@ -584,7 +584,7 @@ void DGDB::setUpdate(std::vector<std::string> args) {
   }
 
   std::cout << "Data sent successfully" << std::endl;
-  parseNewUpdate(nameA, is_node, set_value, socketRepositories[0], attr);
+  parseNewUpdate(nameA, is_node, set_value, repositories[0], attr);
 }
 
 void DGDB::parseNewUpdate(std::string nameA, bool is_node,
@@ -655,7 +655,7 @@ void DGDB::setDelete(std::vector<std::string> args) {
   }
 
   std::cout << "Data sent successfully" << std::endl;
-  parseNewDelete(nameA, object, socketRepositories[0], attr_or_rel);
+  parseNewDelete(nameA, object, repositories[0], attr_or_rel);
 }
 
 void DGDB::parseNewDelete(std::string nameA, int object, Host host,

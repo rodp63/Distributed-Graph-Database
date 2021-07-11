@@ -48,7 +48,7 @@ class DGDB {
   int mainPort;
   std::string mainIp;
 
-  std::vector<Host> socketRepositories;
+  std::vector<Host> repositories;
 
   void runMainServer();
 
@@ -64,7 +64,7 @@ class DGDB {
     server=0;
     numberRepositories = 0;
     repository=0;
-    socketRepositories.push_back(Host{ip, 50000});
+    repositories.push_back(Host{ip, 50000});
   }
   void setMainIp(std::string ip) {
     mainIp = ip;
