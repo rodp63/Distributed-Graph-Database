@@ -15,7 +15,8 @@ class UDPSocket {
  public:
   UDPSocket();
 
-  void SendTo(const std::string& ip_addr, uint16_t port,
+  int GetSocketId() const;
+  int SendTo(const std::string& ip_addr, uint16_t port,
               const char* buffer, int len, int flags=0);
   std::pair<int, sockaddr_in> RecvFrom(char* buffer, int len, int flags=0);
   void Bind(uint16_t port);
@@ -33,7 +34,7 @@ class TCPSocket {
 
   void Init();
   void RenewSocket();
-  int GetSocketId();
+  int GetSocketId() const;
   void Bind(uint16_t port);
   int Send(const char* buffer, int len, int flags=0);
   int Recv(char* buffer, int len, int flags=0);

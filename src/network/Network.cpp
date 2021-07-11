@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <utility>
+#include <iostream>
 
 namespace Network {
 
@@ -17,7 +18,11 @@ UDPSocket::UDPSocket() {
   }
 }
 
-void UDPSocket::SendTo(const std::string& ip_addr, uint16_t port,
+int UDPSocket::GetSocketId() const {
+  return sock;
+}
+
+int UDPSocket::SendTo(const std::string& ip_addr, uint16_t port,
                        const char* buffer, int len, int flags) {
   sockaddr_in addr;
   addr.sin_family = AF_INET;
@@ -32,6 +37,8 @@ void UDPSocket::SendTo(const std::string& ip_addr, uint16_t port,
     close(sock);
     exit(1);
   }
+
+  return ret;
 }
 
 std::pair<int, sockaddr_in> UDPSocket::RecvFrom(char* buffer, int len, int flags) {
@@ -97,7 +104,7 @@ void TCPSocket::Close() {
   close(sock);
 }
 
-int TCPSocket::GetSocketId() {
+int TCPSocket::GetSocketId() const {
   return sock;
 }
 

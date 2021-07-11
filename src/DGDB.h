@@ -17,6 +17,7 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <cstdint>
 
 #include "network/Network.h"
 #include "DBSchema.h"
@@ -25,9 +26,14 @@ class DGDB {
  private:
   using Storage = decltype(InitStorage("dgdb_data.sqlite3"));
 
-  Network::UDPSocket server_socket;
-  Network::TCPSocket client_socket;
-  Network::TCPSocket repository_socket;
+  struct Host {
+    std::string ip;
+    uint16_t port;
+
+    Host(std::string ip, int port) : ip(ip), port(port) {}
+  };
+
+  Network::UDPSocket udp_socket;
 
   Storage storage;
 
@@ -42,15 +48,12 @@ class DGDB {
   int mainPort;
   std::string mainIp;
 
-  std::map<int, std::string> connections;
-  std::vector<int> socketRepositories; // se usa en el maestro
-  //Repository_port  Repository_ip
+  std::vector<Host> socketRepositories;
 
   void runMainServer();
 
-  void runConnection1(int Pconnection);
   void runConnection();
-  void connMasterRepository(int pPort, std::string pIp);
+  void connMasterRepository(int pIp, std::string pPort);
 
  public:
   explicit DGDB(char Pmode='S') : storage(InitStorage("./dgdb_data.sqlite3")) {
@@ -61,7 +64,7 @@ class DGDB {
     server=0;
     numberRepositories = 0;
     repository=0;
-    socketRepositories.push_back(0);
+    socketRepositories.push_back(Host{ip, 50000});
   }
   void setMainIp(std::string ip) {
     mainIp = ip;
@@ -94,20 +97,20 @@ class DGDB {
 
   // CRUD DGDB
   void setNode(std::vector<std::string> args);
-  void parseNewNode(std::string nameA, int conn=0,
+  void parseNewNode(std::string nameA, Host host,
                     std::vector<Attribute> attributes = {},
                     std::vector<std::string> relations = {});
 
   void setQuery(std::vector<std::string> args);
   void parseNewQuery(std::string nameA, int depth, bool leaf, bool attr,
-                     int conn=0, std::vector<Condition> conditions = {});
+                     Host host, std::vector<Condition> conditions = {});
 
   void setUpdate(std::vector<std::string> args);
   void parseNewUpdate(std::string nameA, bool is_node, std::string set_value,
-                      int conn=0, std::string attr = "");
+                      Host host, std::string attr = "");
 
   void setDelete(std::vector<std::string> args);
-  void parseNewDelete(std::string nameA, int object, int conn=0,
+  void parseNewDelete(std::string nameA, int object, Host host,
                       std::string attr_or_rel = "");
 };
 

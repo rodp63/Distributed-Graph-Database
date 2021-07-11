@@ -3,6 +3,7 @@
 
 int main(int argc, char* argv[]) {
   DGDB db;
+
   if (argc == 1) {
     std::cout << "GAAAAAAAAAAAA" << std::endl;
   }
@@ -10,16 +11,22 @@ int main(int argc, char* argv[]) {
             argv[1][0] == 'U' || argv[1][0] == 'D') {
     db.setMode(argv[1][0]);
     db.setClient();
+    db.setMainIp("127.0.0.1"); // must be an arg
+    db.setMainPort(50000); // must be an arg
     std::vector<std::string> args;
-    while(argc > 2) {
+
+    while (argc > 2) {
       args.push_back(argv[argc-1]);
       argc--;
     }
+
     std::reverse(args.begin(), args.end());
+
     if (args.empty()) {
       std::cout << "[ERROR] You must specify a node" << std::endl;
       return 0;
     }
+
     if (argv[1][0] == 'C')
       db.setNode(args);
     else if (argv[1][0] == 'R')
@@ -34,15 +41,18 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> args;
     int port = -1;
 
-    while(argc > 2) {
+    while (argc > 2) {
       args.push_back(argv[argc-1]);
       argc--;
     }
+
     std::reverse(args.begin(), args.end());
 
     auto it_port = std::find(args.begin(), args.end(), "-p");
+
     if (it_port != args.end()) {
       it_port = args.erase(it_port);
+
       if (it_port != args.end() && is_number(*it_port)) {
         port = atoi(it_port->c_str());
         args.erase(it_port);
@@ -68,6 +78,7 @@ int main(int argc, char* argv[]) {
         std::cout << "[ERROR] You must specify the port!" << std::endl;
         return 0;
       }
+
       db.setPort(port);
       db.setIp("127.0.0.1");
       db.setMainIp("127.0.0.1"); // must be an arg
