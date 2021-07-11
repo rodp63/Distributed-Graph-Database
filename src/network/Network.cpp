@@ -4,6 +4,8 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <utility>
+#include <iostream>
 
 namespace Network {
 
@@ -16,7 +18,11 @@ UDPSocket::UDPSocket() {
   }
 }
 
-void UDPSocket::SendTo(const std::string& ip_addr, uint16_t port,
+int UDPSocket::GetSocketId() const {
+  return sock;
+}
+
+int UDPSocket::SendTo(const std::string& ip_addr, uint16_t port,
                        const char* buffer, int len, int flags) {
   sockaddr_in addr;
   addr.sin_family = AF_INET;
@@ -31,9 +37,11 @@ void UDPSocket::SendTo(const std::string& ip_addr, uint16_t port,
     close(sock);
     exit(1);
   }
+
+  return ret;
 }
 
-int UDPSocket::RecvFrom(char* buffer, int len, int flags) {
+std::pair<int, sockaddr_in> UDPSocket::RecvFrom(char* buffer, int len, int flags) {
   sockaddr_in from;
   int size = sizeof(from);
   int ret = recvfrom(sock, buffer, len, flags,
@@ -47,7 +55,7 @@ int UDPSocket::RecvFrom(char* buffer, int len, int flags) {
   }
 
   buffer[ret] = '\0';
-  return ret;
+  return std::make_pair(ret, from);
 }
 
 void UDPSocket::Bind(uint16_t port) {
@@ -63,6 +71,14 @@ void UDPSocket::Bind(uint16_t port) {
     close(sock);
     exit(1);
   }
+}
+
+void UDPSocket::Shutdown(int flags) {
+  shutdown(sock, flags);
+}
+
+void UDPSocket::Close() {
+  close(sock);
 }
 
 void TCPSocket::Init() {
@@ -88,7 +104,7 @@ void TCPSocket::Close() {
   close(sock);
 }
 
-int TCPSocket::GetSocketId() {
+int TCPSocket::GetSocketId() const {
   return sock;
 }
 
@@ -158,11 +174,11 @@ int TCPSocket::AcceptConnection() {
   return new_connection;
 }
 
-void TCPSocket::Connect(std::string ip, uint16_t port) {
+void TCPSocket::Connect(std::string ip_addr, uint16_t port) {
   sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
-  int ret = inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
+  int ret = inet_pton(AF_INET, ip_addr.c_str(), &addr.sin_addr);
 
   if (ret < 0) {
     perror("error: first parameter is not a valid address family");
