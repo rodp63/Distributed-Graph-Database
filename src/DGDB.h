@@ -49,42 +49,42 @@ class DGDB {
   std::vector<int> socket_repositories; // se usa en el maestro
   //Repository_port  Repository_ip
 
-  void runMainServer();
+  void RunMainServer();
 
-  void runConnection(int);
-  void connMasterRepository(int, std::string);
+  void RunConnection(int);
+  void ConnMasterRepository(int, std::string);
 
  public:
   explicit DGDB(char);
   
-  void setMainIp(std::string);
-  void setMainPort(int);
-  void setServer();
-  void setClient();
-  void setRepository();
-  void closeServer();
-  void closeClient();
-  void closeRepository();
-  void runServer();
-  void runRepository();
-  void setMode(char);
-  void setPort(int);
-  void setIp(std::string);
-  void setNumberRepositories(int);
-  void registerRepository();
+  void SetMainIp(std::string);
+  void SetMainPort(int);
+  void SetServer();
+  void SetClient(std::string, int);
+  void SetRepository();
+  void CloseServer();
+  void CloseClient();
+  void CloseRepository();
+  void RunServer();
+  void RunRepository();
+  void SetMode(char);
+  void SetPort(int);
+  void SetIp(std::string);
+  void SetNumberRepositories(int);
+  void RegisterRepository();
 
   // CRUD DGDB
-  void setNode(std::vector<std::string>);
-  void parseNewNode(std::string, int, std::vector<Attribute>, std::vector<std::string>);
+  void SetNode(std::vector<std::string>);
+  void ParseNewNode(std::string, int, std::vector<Attribute>, std::vector<std::string>);
 
-  void setQuery(std::vector<std::string>);
-  void parseNewQuery(std::string, int, bool, bool,int, std::vector<Condition>);
+  void SetQuery(std::vector<std::string>);
+  void ParseNewQuery(std::string, int, bool, bool,int, std::vector<Condition>);
 
-  void setUpdate(std::vector<std::string>);
-  void parseNewUpdate(std::string, bool, std::string,int, std::string);
+  void SetUpdate(std::vector<std::string>);
+  void ParseNewUpdate(std::string, bool, std::string,int, std::string);
 
-  void setDelete(std::vector<std::string>);
-  void parseNewDelete(std::string, int, int, std::string);
+  void SetDelete(std::vector<std::string>);
+  void ParseNewDelete(std::string, int, int, std::string);
 };
 
 #endif // DGDB_H

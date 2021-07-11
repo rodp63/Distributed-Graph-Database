@@ -1,110 +1,118 @@
 #include "DGDB.h"
 #include "tools.h"
 
-void try_commands() {
-  std::cout << "[ERROR] Enought arguments. Try some of these:\n\n";
-  std::cout << "Run main server\n";
-  std::cout << "\tS --server\n";
-  std::cout << "Run repository\n";
-  std::cout << "\tS --repository -p <port>\n";
-  std::cout << "Request\n";
-  std::cout << "\tR <node> [--left] [--attr] [-d <depth>]";
-  std::cout << " [-c \"<key> <op> <value> <logical_op>\"]*\n";
-  std::cout << "Update\n";
-  std::cout << "\t<node> --name <new_name>\n";
-  std::cout << "\t<node> --attr <new_value>\n";
-  std::cout << "Delete\n";
-  std::cout << "\t<node>\n";
-  std::cout << "\t<node> --relation <node>\n";
-  std::cout << "\t<node> --attr <attribute>\n";
-}
-
-int main(int argc, char* argv[]) {
+int ExecuteDGDB(std::vector<std::string> argv, mode &run_mode) {
+  // TODO: default contructor shouldn't define some variables
   DGDB db('S');
-  if (argc == 1) {
-    try_commands();
+
+  std::vector<std::string> args(argv.begin()+1, argv.end());
+
+  // CRUD request
+  if (run_mode == mode::kClient) {
+    // TODO: these 4 following variables must be args
+    // Setting main server
+    std::string server_ip("127.0.0.1");
+    int server_port = 50000;
+    
+    // Setting client
+    std::string client_ip("127.0.0.1");
+    int client_port = 50000;
+    char mode;
+    strcpy(&mode, argv[0].c_str());
+
+    db.SetMode(mode);
+    db.SetClient(client_ip, client_port);
+    db.SetMainIp(server_ip); 
+    db.SetMainPort(server_port);
+
+    if (argv[0] == "C")
+      db.SetNode(args);
+    else if (argv[0] == "R")
+      db.SetQuery(args);
+    else if (argv[0] == "U")
+      db.SetUpdate(args);
+    else if (argv[0] == "D")
+      db.SetDelete(args);
   }
-  else  if (argv[1][0] == 'C' || argv[1][0] == 'R' ||
-            argv[1][0] == 'U' || argv[1][0] == 'D') {
-    db.setMode(argv[1][0]);
-    db.setClient();
-    std::vector<std::string> args;
-    while(argc > 2) {
-      args.push_back(argv[argc-1]);
-      argc--;
-    }
-    std::reverse(args.begin(), args.end());
-    if (args.empty()) {
-      std::cout << "[ERROR] You must specify a node" << std::endl;
-      return 0;
-    }
-    if (argv[1][0] == 'C')
-      db.setNode(args);
-    else if (argv[1][0] == 'R')
-      db.setQuery(args);
-    else if (argv[1][0] == 'U')
-      db.setUpdate(args);
-    else if (argv[1][0] == 'D')
-      db.setDelete(args);
-  }
+  // SERVER request
+  else if (run_mode == mode::kServer) {
 
-  else if (argv[1][0] == 'S') {
-    std::vector<std::string> args;
-    int port = -1;
+    std::string main_or_repo = argv[1];
 
-    while(argc > 2) {
-      args.push_back(argv[argc-1]);
-      argc--;
-    }
-    std::reverse(args.begin(), args.end());
+    // Main server
+    if (main_or_repo == "--server") {
 
-    auto it_port = std::find(args.begin(), args.end(), "-p");
-    if (it_port != args.end()) {
-      it_port = args.erase(it_port);
-      if (it_port != args.end() && is_number(*it_port)) {
-        port = atoi(it_port->c_str());
-        args.erase(it_port);
+      int server_port;
+      
+      if (argv.size() == 2) {
+        server_port = 50000; // default setting
+      } else { // 4 arguments
+        server_port = stoi(argv[3]);
       }
-      else {
-        std::cout << "[ERROR] Invalid input!" << std::endl;
-        return 0;
-      }
-    }
 
-    auto it_repo = std::find(args.begin(), args.end(), "--repository");
-    auto it_serv = std::find(args.begin(), args.end(), "--server");
+      system("clear");
+      PrintMainServer();
+      db.SetPort(server_port);
+      db.SetMode('S');
+      db.SetServer();
+      db.RunServer();
+    }
+    // Repository server
+    else if (main_or_repo == "--repository") {
+      
+      // Setting main server
+      int repo_port = stoi(argv[3]);
+      std::string main_ip;
+      int main_port;
+      // TODO: this must be an arg
+      std::string repo_ip("127.0.0.1");
 
-    if (it_serv != args.end()) {
-      port = port == -1 ? 50000 : port;
-      db.setPort(port);
-      db.setMode('S');
-      db.setServer();
-      db.runServer();
-    }
-    else if (it_repo != args.end()) {
-      if (port == -1) {
-        std::cout << "[ERROR] You must specify the port!" << std::endl;
-        return 0;
+      if (argv.size() == 6) {
+        main_ip = argv[4];
+        main_port = stoi(argv[5]);
+      } else { // default setting
+        main_ip = "127.0.0.1";
+        main_port = 50000;
       }
-      db.setPort(port);
-      db.setIp("127.0.0.1");
-      db.setMainIp("127.0.0.1"); // must be an arg
-      db.setMainPort(50000); // must be an arg
-      db.setMode('E');
-      db.setRepository();
-      db.runServer();
-    }
-    else {
-      std::cout << "[ERROR] You must define a mode!" << std::endl;
-      return 0;
+
+      system("clear");
+      PrintRepository();
+
+      db.SetPort(repo_port);
+      db.SetIp(repo_ip);
+      db.SetMainIp(main_ip);
+      db.SetMainPort(main_port);
+      db.SetMode('E');
+      db.SetRepository();
+      db.RunServer();
     }
   }
+  else std::cout << "[BUG DETECTED] Contact support team" << std::endl;
 
-  else {
-    std::cout << "[ERROR] Invalid argument. Try ..." << std::endl;
-  }
+  return 1;
 }
 
+void RunDGDB() {
+    char *input_user;
+    std::vector<std::string> args;
+    int status_dgdb;
+    bool correct_input = false;
+    mode run_mode;
+
+    do {  
+      printf("DGDB >> ");
+      input_user = ReadInputConsole();
+      args = SplitInput(input_user);
+      correct_input = VerifyInput(args, run_mode);
+      if (correct_input) status_dgdb = ExecuteDGDB(args, run_mode);
+      free(input_user);
+    } while(status_dgdb);
+}
+
+int main() {
+    RunDGDB();
+    return EXIT_SUCCESS;
+}
 
 /*
 int action; // 1B CRUD                  C
