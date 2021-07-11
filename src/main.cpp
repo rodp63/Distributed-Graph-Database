@@ -1,10 +1,28 @@
 #include "DGDB.h"
 #include "tools.h"
 
+void try_commands() {
+  std::cout << "[ERROR] Enought arguments. Try some of these:\n\n";
+  std::cout << "Run main server\n";
+  std::cout << "\tS --server\n";
+  std::cout << "Run repository\n";
+  std::cout << "\tS --repository -p <port>\n";
+  std::cout << "Request\n";
+  std::cout << "\tR <node> [--left] [--attr] [-d <depth>]";
+  std::cout << " [-c \"<key> <op> <value> <logical_op>\"]*\n";
+  std::cout << "Update\n";
+  std::cout << "\t<node> --name <new_name>\n";
+  std::cout << "\t<node> --attr <new_value>\n";
+  std::cout << "Delete\n";
+  std::cout << "\t<node>\n";
+  std::cout << "\t<node> --relation <node>\n";
+  std::cout << "\t<node> --attr <attribute>\n";
+}
+
 int main(int argc, char* argv[]) {
-  DGDB db;
+  DGDB db('S');
   if (argc == 1) {
-    std::cout << "GAAAAAAAAAAAA" << std::endl;
+    try_commands();
   }
   else  if (argv[1][0] == 'C' || argv[1][0] == 'R' ||
             argv[1][0] == 'U' || argv[1][0] == 'D') {
@@ -80,6 +98,10 @@ int main(int argc, char* argv[]) {
       std::cout << "[ERROR] You must define a mode!" << std::endl;
       return 0;
     }
+  }
+
+  else {
+    std::cout << "[ERROR] Invalid argument. Try ..." << std::endl;
   }
 }
 
@@ -173,7 +195,7 @@ int node_or_attribute; // on:node off:attibute    1
 int  query_node_size ; //  2B                     5
 char query_value_node[99];  //  VB                      Julio
 
-int  set_node_size ; //  2B                       4
+int  set_node_size ; //  3B                       4
 char set_value_node[99];  //  VB                        Omar
 
 int query_attribute_size;  //          3B        15
@@ -183,7 +205,7 @@ int set_value_attribute_size; //  3B             Dr
 
 ////////////////////////////////////////////
 int action; //       1B CRUD                      D
-int node_or_attribute; // 1:node 2:attibute 3:R   1
+int node_or_attribute; // 0:node 1:attibute 2:R   1
 int  query_node_size ; //  2B                     5
 char query_value_node[99];  //  VB                      Julio
 

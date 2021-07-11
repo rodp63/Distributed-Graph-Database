@@ -1,5 +1,5 @@
-#ifndef TOOLS_DGDB
-#define TOOLS_DGDB
+#ifndef DGDB_TOOLS_H_
+#define DGDB_TOOLS_H_
 
 inline std::string trim(std::string& str)
 {
@@ -14,4 +14,5 @@ inline bool is_number(const std::string &s)
     while (it != s.end() && std::isdigit(*it)) ++it;
     return !s.empty() && it == s.end();
 }
-#endif
+
+#endif // DGDB_TOOLS_H_

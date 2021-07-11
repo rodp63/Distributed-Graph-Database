@@ -1,11 +1,10 @@
-#ifndef HEADER_DGDB
-#define HEADER_DGDB
+#ifndef DGDB_H
+#define DGDB_H
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -20,6 +19,10 @@
 
 #include "network/Network.h"
 #include "DBSchema.h"
+
+static const char kDataSentSuccess[]= "Data sent successfully";
+static const char kErrorInvalidInput[]= "[ERROR] Invalid input!";
+static const char kErrorPErrorLenghtSend[]= "[ERROR] listen failed";
 
 class DGDB {
  private:
@@ -36,39 +39,26 @@ class DGDB {
   int connection;
   int server;
   char mode;
-  int numberRepositories;
+  int number_repositories;
   int repository;
 
-  int mainPort;
-  std::string mainIp;
+  int main_port;
+  std::string main_ip;
 
   std::map<int, std::string> connections;
-  std::vector<int> socketRepositories; // se usa en el maestro
+  std::vector<int> socket_repositories; // se usa en el maestro
   //Repository_port  Repository_ip
 
   void runMainServer();
 
-  void runConnection(int Pconnection);
-  void connMasterRepository(int pPort, std::string pIp);
+  void runConnection(int);
+  void connMasterRepository(int, std::string);
 
  public:
-  explicit DGDB(char Pmode='S') : storage(InitStorage("./dgdb_data.sqlite3")) {
-    mode = Pmode;
-    ip="127.0.0.1";
-    port=50000;
-    connection=0;
-    server=0;
-    numberRepositories = 0;
-    repository=0;
-    socketRepositories.push_back(0);
-  }
-  void setMainIp(std::string ip) {
-    mainIp = ip;
-  };
-  void setMainPort(int pport=50000) {
-    mainPort = pport;
-  };
-
+  explicit DGDB(char);
+  
+  void setMainIp(std::string);
+  void setMainPort(int);
   void setServer();
   void setClient();
   void setRepository();
@@ -77,37 +67,24 @@ class DGDB {
   void closeRepository();
   void runServer();
   void runRepository();
-  void setMode(char Pmode='S') {
-    mode = Pmode;
-  }
-  void setPort(int Pport=50000) {
-    port = Pport;
-  }
-  void setIp(std::string Pip="127.0.0.1") {
-    ip = Pip;
-  }
-  void setNumberRepositories(int r) {
-    numberRepositories = r;
-  }
+  void setMode(char);
+  void setPort(int);
+  void setIp(std::string);
+  void setNumberRepositories(int);
   void registerRepository();
 
   // CRUD DGDB
-  void setNode(std::vector<std::string> args);
-  void parseNewNode(std::string nameA, int conn=0,
-                    std::vector<Attribute> attributes = {},
-                    std::vector<std::string> relations = {});
+  void setNode(std::vector<std::string>);
+  void parseNewNode(std::string, int, std::vector<Attribute>, std::vector<std::string>);
 
-  void setQuery(std::vector<std::string> args);
-  void parseNewQuery(std::string nameA, int depth, bool leaf, bool attr,
-                     int conn=0, std::vector<Condition> conditions = {});
+  void setQuery(std::vector<std::string>);
+  void parseNewQuery(std::string, int, bool, bool,int, std::vector<Condition>);
 
-  void setUpdate(std::vector<std::string> args);
-  void parseNewUpdate(std::string nameA, bool is_node, std::string set_value,
-                      int conn=0, std::string attr = "");
+  void setUpdate(std::vector<std::string>);
+  void parseNewUpdate(std::string, bool, std::string,int, std::string);
 
-  void setDelete(std::vector<std::string> args);
-  void parseNewDelete(std::string nameA, int object, int conn=0,
-                      std::string attr_or_rel = "");
+  void setDelete(std::vector<std::string>);
+  void parseNewDelete(std::string, int, int, std::string);
 };
 
-#endif
+#endif // DGDB_H

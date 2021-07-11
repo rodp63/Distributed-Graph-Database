@@ -1,8 +1,45 @@
 #include "DGDB.h"
-#include "tools.h"
+
 #include "thirdparty/sqlite_orm/sqlite_orm.h"
 
+#include "tools.h"
+
 namespace sq = sqlite_orm;
+
+DGDB::DGDB(char p_mode) : storage(InitStorage("./dgdb_data.sqlite3")),
+  mode (p_mode),
+  ip ("127.0.0.1"),
+  port (50000),
+  connection (0),
+  server (0),
+  number_repositories (0),
+  repository (0) {
+  socket_repositories.push_back(0);
+}
+
+void DGDB::setMainIp(std::string ip) {
+  main_ip = ip;
+};
+
+void DGDB::setMainPort(int pport = 50000) {
+  main_port = pport;
+};
+
+void DGDB::setMode(char p_mode) {
+  mode = p_mode;
+}
+
+void DGDB::setPort(int Pport = 50000) {
+  port = Pport;
+}
+
+void DGDB::setIp(std::string Pip = "127.0.0.1") {
+  ip = Pip;
+}
+
+void DGDB::setNumberRepositories(int r) {
+  number_repositories = r;
+}
 
 void DGDB::runConnection(int Pconnection) {
   int n;
@@ -84,17 +121,17 @@ void DGDB::runConnection(int Pconnection) {
           // enviar al  Repository
           // determinar que repository
           int r;
-          if (socketRepositories.size() < 2) {
+          if (socket_repositories.size() < 2) {
             std::cout << "Repository has not been attached." << std::endl;
             return;
           }
           else
-            r = buffer[0] % (socketRepositories.size() - 1);
+            r = buffer[0] % (socket_repositories.size() - 1);
 
           r++;
 
           std::cout << "Sending: [" << node_name << "]" << std::endl;
-          parseNewNode(node_name, socketRepositories[r], attributes, relations);
+          parseNewNode(node_name, socket_repositories[r], attributes, relations);
         }
         else if (repository) {
           Node new_node{node_name};
@@ -269,17 +306,17 @@ void DGDB::runConnection(int Pconnection) {
 
       if (server) {
         int r;
-        if (socketRepositories.size() < 2) {
+        if (socket_repositories.size() < 2) {
           std::cout << "Repository has not been attached." << std::endl;
           return;
         }
         else
-          r = buffer[0] % (socketRepositories.size() - 1);
+          r = buffer[0] % (socket_repositories.size() - 1);
 
         r++;
 
         std::cout << "Sending: [" << node_name << "]" << std::endl;
-        parseNewUpdate(node_name, is_node, set_value, socketRepositories[r], attr);
+        parseNewUpdate(node_name, is_node, set_value, socket_repositories[r], attr);
       }
       else if (repository) {
         std::cout << "Update:\n";
@@ -320,17 +357,17 @@ void DGDB::runConnection(int Pconnection) {
 
       if (server) {
         int r;
-        if (socketRepositories.size() < 2) {
+        if (socket_repositories.size() < 2) {
           std::cout << "Repository has not been attached." << std::endl;
           return;
         }
         else
-          r = buffer[0] % (socketRepositories.size() - 1);
+          r = buffer[0] % (socket_repositories.size() - 1);
 
         r++;
 
         std::cout << "Sending: [" << node_name << "]" << std::endl;
-        parseNewDelete(node_name, object, socketRepositories[r], attr_or_rel);
+        parseNewDelete(node_name, object, socket_repositories[r], attr_or_rel);
       }
       else if (repository) {
         std::cout << "Delete:\n";
@@ -370,7 +407,7 @@ void DGDB::runConnection(int Pconnection) {
         connMasterRepository(vPort_int, vIp_string);
 
         if (repository) {
-          socketRepositories.push_back(repository_socket.GetSocketId());
+          socket_repositories.push_back(repository_socket.GetSocketId());
           std::cout << "Repository registed." << std::endl;
         }
         else
@@ -471,17 +508,17 @@ void DGDB::setNode(std::vector<std::string> args) {
   }
 
   if (error) {
-    std::cout << "[ERROR] Invalid input!" << std::endl;
+    std::cout << kErrorInvalidInput << std::endl;
     return;
   }
 
-  std::cout << "Data sent successfully" << std::endl;
+  std::cout << kDataSentSuccess << std::endl;
   parseNewNode(nameA, client_socket.GetSocketId(), attributes, relations);
 }
 
-void DGDB::parseNewNode(std::string nameA, int conn,
-                        std::vector<Attribute> attributes,
-                        std::vector<std::string> relations) {
+void DGDB::parseNewNode(std::string nameA, int conn = 0,
+                        std::vector<Attribute> attributes = {},
+                        std::vector<std::string> relations = {}) {
   char tamano[4];
   sprintf(tamano, "%03lu", nameA.length());
   std::string buffer;
@@ -506,7 +543,7 @@ void DGDB::parseNewNode(std::string nameA, int conn,
   int n = conn_sock.Send(buffer.c_str(), buffer.length());
 
   if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
+    perror(kErrorPErrorLenghtSend);
   }
 }
 
@@ -548,48 +585,48 @@ void DGDB::setQuery(std::vector<std::string> args) {
   }
 
   if (error) {
-    std::cout << "[ERROR] Invalid input!" << std::endl;
+    std::cout << kErrorInvalidInput << std::endl;
     return;
   }
 
-  std::cout << "Data sent successfully" << std::endl;
+  std::cout << kDataSentSuccess << std::endl;
   parseNewQuery(nameA, depth, leaf, attr, client_socket.GetSocketId(), conditions);
 }
 
 void DGDB::parseNewQuery(std::string nameA, int depth, bool leaf, bool attr,
-                         int conn, std::vector<Condition> conditions) {
+                         int conn = 0, std::vector<Condition> conditions = {}) {
   char tamano[4];
   sprintf(tamano, "%03lu", nameA.length());
   std::string buffer;
 
   buffer = "R" + std::string(tamano) + nameA;
 
-  sprintf(tamano, "%01lu", (long)depth);
+  sprintf(tamano, "%01lu", static_cast<long unsigned>(depth));
   buffer += std::string(tamano);
 
   buffer += leaf ? '1' : '0';
   buffer += attr ? '1' : '0';
 
-  sprintf(tamano, "%02lu", conditions.size());
+  sprintf(tamano, "%02lu", static_cast<long unsigned>(conditions.size()));
   buffer += std::string(tamano);
 
   for (Condition &condition : conditions) {
-    sprintf(tamano, "%03lu", condition.key.length());
+    sprintf(tamano, "%03lu", static_cast<long unsigned>(condition.key.length()));
     buffer += std::string(tamano) + condition.key;
 
-    buffer += std::to_string(int(condition.op));
+    buffer += std::to_string(static_cast<int>(condition.op));
 
-    sprintf(tamano, "%03lu", condition.value.length());
+    sprintf(tamano, "%03lu", static_cast<long unsigned>(condition.value.length()));
     buffer += std::string(tamano) + condition.value;
 
-    buffer += std::to_string(int(condition.is_or));
+    buffer += std::to_string(static_cast<int>(condition.is_or));
   }
 
   Network::TCPSocket conn_sock(conn);
   int n = conn_sock.Send(buffer.c_str(), buffer.length());
 
   if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
+    perror(kErrorPErrorLenghtSend);
   }
 }
 
@@ -625,16 +662,16 @@ void DGDB::setUpdate(std::vector<std::string> args) {
     error = true;
 
   if (error) {
-    std::cout << "[ERROR] Invalid input!" << std::endl;
+    std::cout << kErrorInvalidInput << std::endl;
     return;
   }
 
-  std::cout << "Data sent successfully" << std::endl;
+  std::cout << kDataSentSuccess << std::endl;
   parseNewUpdate(nameA, is_node, set_value, client_socket.GetSocketId(), attr);
 }
 
 void DGDB::parseNewUpdate(std::string nameA, bool is_node, std::string set_value,
-                          int conn, std::string attr) {
+                          int conn = 0, std::string attr = "") {
   char tamano[4];
   sprintf(tamano, "%03lu", nameA.length());
   std::string buffer;
@@ -660,7 +697,7 @@ void DGDB::parseNewUpdate(std::string nameA, bool is_node, std::string set_value
   int n = conn_sock.Send(buffer.c_str(), buffer.length());
 
   if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
+    perror(kErrorPErrorLenghtSend);
   }
 }
 
@@ -695,16 +732,16 @@ void DGDB::setDelete(std::vector<std::string> args) {
     object = 0;
 
   if (error) {
-    std::cout << "[ERROR] Invalid input!" << std::endl;
+    std::cout << kErrorInvalidInput << std::endl;
     return;
   }
 
-  std::cout << "Data sent successfully" << std::endl;
+  std::cout << kDataSentSuccess << std::endl;
   parseNewDelete(nameA, object, client_socket.GetSocketId(), attr_or_rel);
 }
 
-void DGDB::parseNewDelete(std::string nameA, int object, int conn,
-                          std::string attr_or_rel) {
+void DGDB::parseNewDelete(std::string nameA, int object, int conn = 0,
+                          std::string attr_or_rel = "") {
   char tamano[4];
   sprintf(tamano, "%03lu", nameA.length());
   std::string buffer;
@@ -723,7 +760,7 @@ void DGDB::parseNewDelete(std::string nameA, int object, int conn,
   int n = conn_sock.Send(buffer.c_str(), buffer.length());
 
   if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
+    perror(kErrorPErrorLenghtSend);
   }
 }
 
@@ -751,7 +788,7 @@ void DGDB::registerRepository() {
   // Set conn to Main
   Network::TCPSocket main_socket;
   main_socket.Init();
-  main_socket.Connect(mainIp, mainPort);
+  main_socket.Connect(main_ip, main_port);
 
   std::cout << "*2*" << std::endl;
 
