@@ -2,36 +2,20 @@
 #define RDT_RDT_H_
 
 #include <vector>
-#include "../udp/UDP.h"
+#include <string>
+#include <cstdint>
+#include "../network/Network.h"
+#include "RDT_UDP_Helper.h"
 
-class RDT_UDP_Server {
-  UDP_Server server;
-  std::vector<int> sequence;
-  int num_clients;
+class RDT_UDP {
+ public:
+  int SendTo(const std::string& ip_addr, uint16_t port, const char* buffer,
+             int len, int flags=0);
+  int RecvFrom(char* buffer, int len, int flags=0);
 
-  RDT_UDP_Server(int port) : num_clients(0) {}
-
-  void AcceptClient() {
-    sequence.push_back(0);
-    ++num_clients;
-  }
-
-  void Send(int client_id, std::string msg) {
-  }
-
-  void Read(int client_id) {
-  }
-};
-
-class RDT_UDP_Client {
-  RDT_UDP_Client(std::string addr, int port) {
-  } 
-
-  void Send(std::string msg) {
-  }
-
-  void Read() {
-  }
+ private:
+  Network::UDPSocket server;
+  RDT_UDP_Helper rdt_udp_helper;
 };
 
 #endif  // RDT_RDT_H_
