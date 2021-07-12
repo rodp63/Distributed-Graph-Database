@@ -31,18 +31,18 @@ void TryCommands() {
   std::cout << "---------------------- CRUD commands ------------------------\n";
   std::cout << "-------------------------------------------------------------\n";
   std::cout << " Create:\n";
-  std::cout << "\tC <node_name> [-a \"<atribute_name> <atribute_value>\"]*\n"; 
+  std::cout << "\tC <node_name> [-a \"<atribute_name>=<atribute_value>\"]*\n"; 
   std::cout << "\t[-r \"<relation>\"]*\n";
   std::cout << " Request:\n";
-  std::cout << "\tR <node> [--left] [--attr] [-d <depth>]\n";
+  std::cout << "\tR <node> [--leaf] [--attr] [-d <depth>]\n";
   std::cout << "\t[-c \"<key> <op> <value> <logical_op>\"]*\n";
   std::cout << " Update:\n";
-  std::cout << "\t<node> --name <new_name>\n";
-  std::cout << "\t<node> --attr <new_value>\n";
+  std::cout << "\tU <node> --name <new_name>\n";
+  std::cout << "\tU <node> --attr <new_value>\n";
   std::cout << " Delete:\n";
-  std::cout << "\t<node>\n";
-  std::cout << "\t<node> --relation <node>\n";
-  std::cout << "\t<node> --attr <attribute>\n";
+  std::cout << "\tD <node>\n";
+  std::cout << "\tD <node> --relation <node>\n";
+  std::cout << "\tD <node> --attr <attribute>\n";
   std::cout << "-------------------------------------------------------------" << std::endl;
 }
 

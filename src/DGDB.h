@@ -1,5 +1,5 @@
-#ifndef DGDB_H
-#define DGDB_H
+#ifndef DGDB_H_
+#define DGDB_H_
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -16,6 +16,7 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <cstdint>
 
 #include "network/Network.h"
 #include "DBSchema.h"
@@ -28,9 +29,14 @@ class DGDB {
  private:
   using Storage = decltype(InitStorage("dgdb_data.sqlite3"));
 
-  Network::TCPSocket server_socket;
-  Network::TCPSocket client_socket;
-  Network::TCPSocket repository_socket;
+  struct Host {
+    std::string ip;
+    uint16_t port;
+
+    Host(std::string ip, int port) : ip(ip), port(port) {}
+  };
+
+  Network::UDPSocket udp_socket;
 
   Storage storage;
 
@@ -45,17 +51,15 @@ class DGDB {
   int main_port;
   std::string main_ip;
 
-  std::map<int, std::string> connections;
-  std::vector<int> socket_repositories; // se usa en el maestro
-  //Repository_port  Repository_ip
+  std::vector<Host> repositories;
 
   void RunMainServer();
 
-  void RunConnection(int);
+  void RunConnection();
   void ConnMasterRepository(int, std::string);
 
  public:
-  explicit DGDB(char);
+  DGDB();
   
   void SetMainIp(std::string);
   void SetMainPort(int);
@@ -75,16 +79,16 @@ class DGDB {
 
   // CRUD DGDB
   void SetNode(std::vector<std::string>);
-  void ParseNewNode(std::string, int, std::vector<Attribute>, std::vector<std::string>);
+  void ParseNewNode(std::string, Host, std::vector<Attribute>, std::vector<std::string>);
 
   void SetQuery(std::vector<std::string>);
-  void ParseNewQuery(std::string, int, bool, bool,int, std::vector<Condition>);
+  void ParseNewQuery(std::string, int, bool, bool, Host, std::vector<Condition>);
 
   void SetUpdate(std::vector<std::string>);
-  void ParseNewUpdate(std::string, bool, std::string,int, std::string);
+  void ParseNewUpdate(std::string, bool, std::string, Host, std::string);
 
   void SetDelete(std::vector<std::string>);
-  void ParseNewDelete(std::string, int, int, std::string);
+  void ParseNewDelete(std::string, int, Host host, std::string);
 };
 
 #endif // DGDB_H

@@ -3,7 +3,7 @@
 
 int ExecuteDGDB(std::vector<std::string> argv, mode &run_mode) {
   // TODO: default contructor shouldn't define some variables
-  DGDB db('S');
+  DGDB db;
 
   std::vector<std::string> args(argv.begin()+1, argv.end());
 
@@ -21,7 +21,7 @@ int ExecuteDGDB(std::vector<std::string> argv, mode &run_mode) {
     strcpy(&mode, argv[0].c_str());
 
     db.SetMode(mode);
-    db.SetClient(client_ip, client_port);
+    db.SetClient(client_ip, client_port); // TODO: add parameters client_ip, client_port
     db.SetMainIp(server_ip); 
     db.SetMainPort(server_port);
 
@@ -34,6 +34,7 @@ int ExecuteDGDB(std::vector<std::string> argv, mode &run_mode) {
     else if (argv[0] == "D")
       db.SetDelete(args);
   }
+
   // SERVER request
   else if (run_mode == mode::kServer) {
 
@@ -52,6 +53,7 @@ int ExecuteDGDB(std::vector<std::string> argv, mode &run_mode) {
 
       system("clear");
       PrintMainServer();
+
       db.SetPort(server_port);
       db.SetMode('S');
       db.SetServer();
@@ -75,19 +77,22 @@ int ExecuteDGDB(std::vector<std::string> argv, mode &run_mode) {
         main_port = 50000;
       }
 
-      system("clear");
-      PrintRepository();
-
       db.SetPort(repo_port);
       db.SetIp(repo_ip);
       db.SetMainIp(main_ip);
       db.SetMainPort(main_port);
       db.SetMode('E');
       db.SetRepository();
+      
+      std::cout << "[DGDB] Running Repository..." << std::endl;
+      std::this_thread::sleep_for (std::chrono::seconds(2)); // seems pro
+      system("clear");
+      PrintRepository();
+
       db.RunServer();
     }
   }
-  else std::cout << "[BUG DETECTED] Contact support team" << std::endl;
+  else std::cout << "[BUG DETECTED] ExecuteDGDB" << std::endl;
 
   return 1;
 }
