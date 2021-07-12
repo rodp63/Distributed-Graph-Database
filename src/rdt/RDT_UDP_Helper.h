@@ -1,5 +1,5 @@
-#ifndef RDT_RDTUDPHELPER_H_
-#define RDT_RDTUDPHELPER_H_
+#ifndef DGDB_RDT_RDTUDPHELPER_H_
+#define DGDB_RDT_RDTUDPHELPER_H_
 
 #include <string>
 #include <vector>
@@ -21,10 +21,10 @@ class RDT_UDP_Helper {
   struct AckPacket {
     uint16_t checksum;
     uint16_t len;
-    uint32_t sequence_number;
+    uint32_t ack_number;
 
-    AckPacket(uint16_t checksum, uint16_t len, uint32_t seq_no)
-      : checksum(checksum), len(len), sequence_number(seq_no) {}
+    AckPacket(uint16_t checksum, uint16_t len, uint32_t ack_no)
+      : checksum(checksum), len(len), ack_number(ack_no) {}
     explicit AckPacket(const std::string& packet_str);
     std::string ToString() const;
   };
@@ -43,4 +43,4 @@ class RDT_UDP_Helper {
   bool IsCorrupt(const Packet& packet) const;
 };
 
-#endif  // RDT_RDTUDPHELPER_H
+#endif  // DGDB_RDT_RDTUDPHELPER_H
