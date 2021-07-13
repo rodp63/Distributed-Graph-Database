@@ -13,7 +13,7 @@ class RDT_UDP {
     : rdt_udp_helper(max_packet_length) {}
   void SendTo(const std::string& ip_addr, uint16_t port, const std::string& data,
              int flags=0);
-  void RecvFrom(std::string* data);
+  sockaddr_in RecvFrom(std::string* data);
   void Bind(uint16_t port);
   void Shutdown(int flags=0);
   void Close();

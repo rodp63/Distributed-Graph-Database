@@ -54,7 +54,7 @@ class DGDB {
   void runMainServer();
 
   void runConnection();
-  void connMasterRepository(int pIp, std::string pPort);
+  void connMasterRepository(std::string pIp, uint16_t pPort);
 
  public:
   explicit DGDB(char Pmode='S')
@@ -70,9 +70,11 @@ class DGDB {
   }
   void setMainIp(std::string ip) {
     mainIp = ip;
+    repositories[0].ip = mainIp;
   };
   void setMainPort(int pport=50000) {
     mainPort = pport;
+    repositories[0].port = mainPort;
   };
 
   void setServer();

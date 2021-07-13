@@ -47,36 +47,45 @@ void RDT_UDP::SendTo(const std::string& ip_addr, uint16_t port,
   }
 }
 
-void RDT_UDP::RecvFrom(std::string* data) {
+sockaddr_in RDT_UDP::RecvFrom(std::string* data) {
   RDT_UDP_Helper::AckPacket ack_packet(0, 0, 0);
   bool alternate_bit = 0;
   std::string ack_packet_str;
   std::string s_buffer;
+  sockaddr_in from;
+  int packet_count = 0;
 
   while (true) {
     // std::cout << "Waiting for packet with alternate_bit = " << alternate_bit <<
-              // std::endl;
-    auto [n, from] = udp_socket.RecvFromTillTimeout(&s_buffer, kMaxPacketSize,
-                     kTimeoutSeconds);
-    std::string from_addr(INET_ADDRSTRLEN, 0);
-    inet_ntop(AF_INET, &from.sin_addr, &from_addr[0], INET_ADDRSTRLEN);
-    uint16_t from_port = ntohs(from.sin_port);
+    // std::endl;
+    auto [n, from_] = udp_socket.RecvFromTillTimeout(&s_buffer, kMaxPacketSize,
+                      kTimeoutSeconds);
 
     if (n == 0) {
       // std::cout << "Nothing was received" << std::endl;
       break;
     }
 
+    std::string from_addr(INET_ADDRSTRLEN, 0);
+    inet_ntop(AF_INET, &from_.sin_addr, &from_addr[0], INET_ADDRSTRLEN);
+    uint16_t from_port = ntohs(from_.sin_port);
+
+    if (packet_count == 0) {
+      from.sin_addr = from_.sin_addr;
+      from.sin_port = from_.sin_port;
+    }
+
     // std::cout << "from_addr: " << from_addr << "\n"
-              // "from_port: " << from_port << std::endl;
+    // "from_port: " << from_port << std::endl;
 
     // std::cout << "Received packet:\n";
     // std::cout << s_buffer << std::endl;
 
     RDT_UDP_Helper::Packet packet{s_buffer};
+    ++packet_count;
 
     // std::cout << "packet.sequence_number = " <<  packet.sequence_number << "\n"
-      // << "IsCorrupt: " << rdt_udp_helper.IsCorrupt(packet) << std::endl;
+    // << "IsCorrupt: " << rdt_udp_helper.IsCorrupt(packet) << std::endl;
     if (packet.sequence_number == alternate_bit
         && !rdt_udp_helper.IsCorrupt(packet)) {
       (*data).append(packet.data);
@@ -98,6 +107,8 @@ void RDT_UDP::RecvFrom(std::string* data) {
       break;
     }
   }
+
+  return from;
 }
 
 void RDT_UDP::Bind(uint16_t port) {
