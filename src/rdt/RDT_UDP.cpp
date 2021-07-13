@@ -70,7 +70,8 @@ sockaddr_in RDT_UDP::RecvFrom(std::string* data) {
     }
 
     if (packet_count == 0) {
-      from = from_;
+      from.sin_addr = from_.sin_addr;
+      from.sin_port = from_.sin_port;
     }
 
     // std::cout << "from_addr: " << from_addr << "\n"

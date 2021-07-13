@@ -330,7 +330,7 @@ void DGDB::runConnection() {
       inet_ntop(AF_INET, &from.sin_addr, sIp, INET_ADDRSTRLEN);
       std::string vIp(sIp);
 
-      connMasterRepository(vPort, vIp);
+      connMasterRepository(vIp, vPort);
 
       if (repository) {
         repositories.push_back(Host{vIp, vPort});
@@ -677,7 +677,7 @@ void DGDB::runRepository() {
   runConnection();
 }
 
-void DGDB::connMasterRepository(int pIp, std::string pPort) {
+void DGDB::connMasterRepository(std::string pIp, uint16_t pPort) {
   std::cout << pIp << "-" << pPort << std::endl;
   repository = 1;
 }

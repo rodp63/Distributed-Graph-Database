@@ -54,7 +54,7 @@ class DGDB {
   void runMainServer();
 
   void runConnection();
-  void connMasterRepository(int pIp, std::string pPort);
+  void connMasterRepository(std::string pIp, uint16_t pPort);
 
  public:
   explicit DGDB(char Pmode='S')
