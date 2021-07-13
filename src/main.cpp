@@ -1,109 +1,23 @@
-#include <string>
-#include "DGDB.h"
-#include "tools.h"
+#include "engine/DGDBEngine.hpp"
 
 int main(int argc, char* argv[]) {
-  DGDB db;
+  DGDBEngine dgdb_engine;
+  dgdb_engine.Init(argc, argv);
 
-  if (argc == 1) {
-    std::cout << "GAAAAAAAAAAAA" << std::endl;
-  }
-  else  if (argv[1][0] == 'C' || argv[1][0] == 'R' ||
-            argv[1][0] == 'U' || argv[1][0] == 'D') {
-    db.setMode(argv[1][0]);
-    db.setClient();
-    // db.setMainIp("35.231.230.50"); // must be an arg
-      db.setMainIp("35.240.132.238"); // must be an arg
-    // db.setMainIp("127.0.0.1"); // must be an arg
-    db.setMainPort(50000); // must be an arg
-    std::vector<std::string> args;
+  if (dgdb_engine.run_mode == mode::kShell) {
+    dgdb_engine.Shell();
+  } else if (dgdb_engine.run_mode == mode::kServerRepository) {
+    dgdb_engine.RunServerRepository();
+  } else if (dgdb_engine.run_mode == mode::kServerMain) {
+    dgdb_engine.RunServerMain();
+  } else if (dgdb_engine.run_mode == mode::kNotArguments) {
+    dgdb_engine.PrintMainUsage();
+  } else if (dgdb_engine.run_mode == mode::kError) {
+    dgdb_engine.PrintMainUsageFirstArg();
+  } else std::cout << "[BUG DETECTED] Main" << std::endl;
 
-    while (argc > 2) {
-      args.push_back(argv[argc-1]);
-      argc--;
-    }
-
-    std::reverse(args.begin(), args.end());
-
-    if (args.empty()) {
-      std::cout << "[ERROR] You must specify a node" << std::endl;
-      return 0;
-    }
-
-    bool st;
-
-    if (argv[1][0] == 'C')
-      st = db.setNode(args);
-    else if (argv[1][0] == 'R')
-      st = db.setQuery(args);
-    else if (argv[1][0] == 'U')
-      st = db.setUpdate(args);
-    else if (argv[1][0] == 'D')
-      st = db.setDelete(args);
-
-    if (st)
-      db.WaitResponse();
-  }
-
-  else if (argv[1][0] == 'S') {
-    std::vector<std::string> args;
-    int port = -1;
-
-    while (argc > 2) {
-      args.push_back(argv[argc-1]);
-      argc--;
-    }
-
-    std::reverse(args.begin(), args.end());
-
-    auto it_port = std::find(args.begin(), args.end(), "-p");
-
-    if (it_port != args.end()) {
-      it_port = args.erase(it_port);
-
-      if (it_port != args.end() && is_number(*it_port)) {
-        port = atoi(it_port->c_str());
-        args.erase(it_port);
-      }
-      else {
-        std::cout << "[ERROR] Invalid input!" << std::endl;
-        return 0;
-      }
-    }
-
-    auto it_repo = std::find(args.begin(), args.end(), "--repository");
-    auto it_serv = std::find(args.begin(), args.end(), "--server");
-
-    if (it_serv != args.end()) {
-      port = port == -1 ? 50000 : port;
-      db.setPort(port);
-      db.setMode('S');
-      db.setServer();
-      db.runServer();
-    }
-    else if (it_repo != args.end()) {
-      if (port == -1) {
-        std::cout << "[ERROR] You must specify the port!" << std::endl;
-        return 0;
-      }
-
-      db.setPort(port);
-      db.setIp("127.0.0.1");
-      // db.setMainIp("35.231.230.50"); // must be an arg
-      db.setMainIp("35.240.132.238"); // must be an arg
-      // db.setMainIp("127.0.0.1"); // must be an arg
-      db.setMainPort(50000); // must be an arg
-      db.setMode('E');
-      db.setRepository();
-      db.runServer();
-    }
-    else {
-      std::cout << "[ERROR] You must define a mode!" << std::endl;
-      return 0;
-    }
-  }
+  return EXIT_SUCCESS;
 }
-
 
 /*
 int action; // 1B CRUD                  C
@@ -194,7 +108,7 @@ int node_or_attribute; // on:node off:attibute    1
 int  query_node_size ; //  2B                     5
 char query_value_node[99];  //  VB                      Julio
 
-int  set_node_size ; //  2B                       4
+int  set_node_size ; //  3B                       4
 char set_value_node[99];  //  VB                        Omar
 
 int query_attribute_size;  //          3B        15
@@ -204,7 +118,7 @@ int set_value_attribute_size; //  3B             Dr
 
 ////////////////////////////////////////////
 int action; //       1B CRUD                      D
-int node_or_attribute; // 1:node 2:attibute 3:R   1
+int node_or_attribute; // 0:node 1:attibute 2:R   1
 int  query_node_size ; //  2B                     5
 char query_value_node[99];  //  VB                      Julio
 

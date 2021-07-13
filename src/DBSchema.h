@@ -1,5 +1,5 @@
-#ifndef DBSCHEMA_H_
-#define DBSCHEMA_H_
+#ifndef DGDB_DBSCHEMA_H_
+#define DGDB_DBSCHEMA_H_
 
 #include "thirdparty/sqlite_orm/sqlite_orm.h"
 
@@ -89,4 +89,4 @@ inline auto InitStorage(const std::string& path) {
   return storage;
 }
 
-#endif  // DBSCHEMA_H_
+#endif  // DGDB_DBSCHEMA_H_

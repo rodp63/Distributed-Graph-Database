@@ -1,5 +1,5 @@
-#ifndef NETWORK_NETWORK_H_
-#define NETWORK_NETWORK_H_
+#ifndef DGDB_NETWORK_NETWORK_H_
+#define DGDB_NETWORK_NETWORK_H_
 
 #include <cstdint>
 #include <string>
@@ -49,4 +49,4 @@ class TCPSocket {
 
 }  // namespace Network
 
-#endif  // NETWORK_NETWORK_H_
+#endif  // DGDB_NETWORK_NETWORK_H_
