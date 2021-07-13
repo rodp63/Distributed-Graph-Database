@@ -228,7 +228,7 @@ bool DGDBEngine::Shell() {
   std::string server_ip;
   if (args_first_input[1] != "--default") {
     server_ip = args_first_input[1];
-  } else server_ip = "127.0.0.1";
+  } else server_ip = "35.240.132.238";
   
   char *input_user;
   std::vector<std::string> args;
