@@ -2,19 +2,20 @@
 #include "DGDB.h"
 #include "tools.h"
 #include "thirdparty/sqlite_orm/sqlite_orm.h"
+#include "rdt/RDT_UDP.h"
 
 namespace sq = sqlite_orm;
 
 void DGDB::runConnection() {
   int s, ss;
-  char buffer[1024];
   std::string s_buffer;
   std::string bufferAux;
   std::string node_name;
 
   while (server || repository) {
-    auto [n, from_addr] = udp_socket.RecvFrom(buffer, 1000);
-    s_buffer = buffer;
+    s_buffer.clear();
+    rdt_udp_socket.RecvFrom(&s_buffer);
+    // std::cout << "From application: " << s_buffer << std::endl;
 
     if (s_buffer[0] == 'C') {
       s_buffer.erase(0, 1);
@@ -147,69 +148,64 @@ void DGDB::runConnection() {
       s = stoi(s_buffer.substr(0, 3)) + 5;
       s_buffer.erase(0, 3);
 
-      if (n < s) {
-        perror("ERROR reading second size\n");
-      }
+      bufferAux = s_buffer[s - 5];
+      depth = stoi(bufferAux);
+
+      bufferAux = s_buffer[s - 4];
+      leaf = stoi(bufferAux);
+
+      bufferAux = s_buffer[s - 3];
+      attr = stoi(bufferAux);
+
+      bufferAux = s_buffer[s - 2];
+      bufferAux += s_buffer[s - 1];
+      int cnt = stoi(bufferAux);
+
+      if (cnt == 0)
+        std::cout << "No se envio condiciones" << std::endl;
       else {
-        bufferAux = s_buffer[s - 5];
-        depth = stoi(bufferAux);
+        while (cnt--) {
+          Condition current;
 
-        bufferAux = s_buffer[s - 4];
-        leaf = stoi(bufferAux);
+          ss = stoi(s_buffer.substr(s, 3));
+          s_buffer.erase(s, 3);
 
-        bufferAux = s_buffer[s - 3];
-        attr = stoi(bufferAux);
+          current.key = s_buffer.substr(s, ss);
+          s_buffer.erase(s, ss);
 
-        bufferAux = s_buffer[s - 2];
-        bufferAux += s_buffer[s - 1];
-        int cnt = stoi(bufferAux);
+          current.op = Condition::Operator(s_buffer[s] - '0');
+          s_buffer.erase(s, 1);
 
-        if (cnt == 0)
-          std::cout << "No se envio condiciones" << std::endl;
-        else {
-          while (cnt--) {
-            Condition current;
+          ss = stoi(s_buffer.substr(s, 3));
+          s_buffer.erase(s, 3);
 
-            ss = stoi(s_buffer.substr(s, 3));
-            s_buffer.erase(s, 3);
+          current.value = s_buffer.substr(s, ss);
+          s_buffer.erase(s, ss);
 
-            current.key = s_buffer.substr(s, ss);
-            s_buffer.erase(s, ss);
+          current.is_or = s_buffer[s] - '0';
+          s_buffer.erase(s, 1);
 
-            current.op = Condition::Operator(s_buffer[s] - '0');
-            s_buffer.erase(s, 1);
-
-            ss = stoi(s_buffer.substr(s, 3));
-            s_buffer.erase(s, 3);
-
-            current.value = s_buffer.substr(s, ss);
-            s_buffer.erase(s, ss);
-
-            current.is_or = s_buffer[s] - '0';
-            s_buffer.erase(s, 1);
-
-            conditions.push_back(current);
-          }
+          conditions.push_back(current);
         }
+      }
 
-        node_name = s_buffer.substr(0, s - 5);
+      node_name = s_buffer.substr(0, s - 5);
 
-        if (server) {
-          std::cout << "Query:\n";
-          std::cout << "> Node: " << node_name << "\n";
-          std::cout << "> Depth: " << depth << "\n";
-          std::cout << "> Leaf?: " << leaf << "\n";
-          std::cout << "> Attributes?: " << attr << "\n";
+      if (server) {
+        std::cout << "Query:\n";
+        std::cout << "> Node: " << node_name << "\n";
+        std::cout << "> Depth: " << depth << "\n";
+        std::cout << "> Leaf?: " << leaf << "\n";
+        std::cout << "> Attributes?: " << attr << "\n";
 
-          if (conditions.size())
-            std::cout << "> Conditions: " << conditions.size() << "\n";
+        if (conditions.size())
+          std::cout << "> Conditions: " << conditions.size() << "\n";
 
-          for (auto& cond : conditions) {
-            std::cout << "  -> " << cond.key << " "
-                      << cond.op_to_string() << " "
-                      << cond.value << " "
-                      << cond.is_or_to_string() << std::endl;
-          }
+        for (auto& cond : conditions) {
+          std::cout << "  -> " << cond.key << " "
+                    << cond.op_to_string() << " "
+                    << cond.value << " "
+                    << cond.is_or_to_string() << std::endl;
         }
       }
     }
@@ -334,15 +330,14 @@ void DGDB::runConnection() {
       vPort = stoi(s_buffer.substr(0, 5));
       s_buffer.erase(0, 5);
 
-      vIp = s_buffer.substr(0, 16);
-      s_buffer.erase(0, 16);
+      vIp = s_buffer;
 
       trim(vIp);
       connMasterRepository(vPort, vIp);
 
       if (repository) {
         repositories.push_back(Host{vIp, vPort});
-        std::cout << "Repository registed." << std::endl;
+        std::cout << "Repositorio registrado." << std::endl;
       }
       else
         perror("ERROR no se pudo registrar Repositorio\n");
@@ -372,23 +367,23 @@ void DGDB::setClient() {
 
 void DGDB::closeClient() {
   connection = 0;
-  udp_socket.Shutdown(SHUT_RDWR);
-  udp_socket.Close();
+  rdt_udp_socket.Shutdown(SHUT_RDWR);
+  rdt_udp_socket.Close();
 }
 
 void DGDB::setServer() {
-  udp_socket.Bind(port);
+  rdt_udp_socket.Bind(port);
   server = 1;
 }
 
 void DGDB::closeServer() {
   server = 0;
-  udp_socket.Close();
+  rdt_udp_socket.Close();
 }
 
 void DGDB::setRepository() {
   std::cout << "setRepository" << std::endl;
-  udp_socket.Bind(port);
+  rdt_udp_socket.Bind(port);
 
   registerRepository();
   repository = 1;
@@ -454,11 +449,7 @@ void DGDB::parseNewNode(std::string nameA, Host host,
     buffer += std::string(tamano) + attr.value;
   }
 
-  int n = udp_socket.SendTo(host.ip, host.port, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
-  }
+  rdt_udp_socket.SendTo(host.ip, host.port, buffer);
 }
 
 void DGDB::setQuery(std::vector<std::string> args) {
@@ -539,11 +530,7 @@ void DGDB::parseNewQuery(std::string nameA, int depth, bool leaf, bool attr,
     buffer += std::to_string(int(condition.is_or));
   }
 
-  int n = udp_socket.SendTo(host.ip, host.port, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
-  }
+  rdt_udp_socket.SendTo(host.ip, host.port, buffer);
 }
 
 void DGDB::setUpdate(std::vector<std::string> args) {
@@ -611,11 +598,7 @@ void DGDB::parseNewUpdate(std::string nameA, bool is_node,
 
   std::cout << buffer << std::endl;
 
-  int n = udp_socket.SendTo(host.ip, host.port, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
-  }
+  rdt_udp_socket.SendTo(host.ip, host.port, buffer);
 }
 
 void DGDB::setDelete(std::vector<std::string> args) {
@@ -674,11 +657,7 @@ void DGDB::parseNewDelete(std::string nameA, int object, Host host,
 
   std::cout << buffer << std::endl;
 
-  int n = udp_socket.SendTo(host.ip, host.port, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
-  }
+  rdt_udp_socket.SendTo(host.ip, host.port, buffer);
 }
 
 /// Protocolo
@@ -691,24 +670,14 @@ void DGDB::registerRepository() {
   */
   std::cout << ip << std::endl;
   std::string buffer;
-  char vip[17];
   char vport[6];
   sprintf(vport, "%05d", port);
   vport[5] = '\0';
-  sprintf(vip, "%16s", ip.c_str());
-  std::cout << vip << std::endl;
   std::string sport = vport;
-  std::string sip = vip;
-  buffer = "E" + sport + sip;
+  buffer = "E" + sport + ip;
   std::cout << "*" << buffer.c_str() << "*" << std::endl;
 
-  int n = udp_socket.SendTo(mainIp, mainPort, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    std::cout << "Registering Repository:[" << buffer << "] failed" << std::endl;
-  }
-
-  std::cout << n << std::endl;
+  rdt_udp_socket.SendTo(mainIp, mainPort, buffer);
 }
 
 void DGDB::runRepository() {

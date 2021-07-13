@@ -20,6 +20,7 @@
 #include <cstdint>
 
 #include "network/Network.h"
+#include "rdt/RDT_UDP.h"
 #include "DBSchema.h"
 
 class DGDB {
@@ -33,7 +34,7 @@ class DGDB {
     Host(std::string ip, int port) : ip(ip), port(port) {}
   };
 
-  Network::UDPSocket udp_socket;
+  RDT_UDP rdt_udp_socket;
 
   Storage storage;
 
@@ -56,7 +57,8 @@ class DGDB {
   void connMasterRepository(int pIp, std::string pPort);
 
  public:
-  explicit DGDB(char Pmode='S') : storage(InitStorage("./dgdb_data.sqlite3")) {
+  explicit DGDB(char Pmode='S')
+    : rdt_udp_socket(10), storage(InitStorage("./dgdb_data.sqlite3")) {
     mode = Pmode;
     ip="127.0.0.1";
     port=50000;

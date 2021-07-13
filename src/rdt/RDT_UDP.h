@@ -11,9 +11,12 @@ class RDT_UDP {
  public:
   explicit RDT_UDP(size_t max_packet_length=1000)
     : rdt_udp_helper(max_packet_length) {}
-  int SendTo(const std::string& ip_addr, uint16_t port, const std::string& data,
+  void SendTo(const std::string& ip_addr, uint16_t port, const std::string& data,
              int flags=0);
-  int RecvFrom(std::string* buffer, int flags=0);
+  void RecvFrom(std::string* data);
+  void Bind(uint16_t port);
+  void Shutdown(int flags=0);
+  void Close();
 
  private:
   Network::UDPSocket udp_socket;
