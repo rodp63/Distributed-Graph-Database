@@ -13,7 +13,8 @@ int main(int argc, char* argv[]) {
     db.setMode(argv[1][0]);
     db.setClient();
     // db.setMainIp("35.231.230.50"); // must be an arg
-    db.setMainIp("127.0.0.1"); // must be an arg
+      db.setMainIp("35.240.132.238"); // must be an arg
+    // db.setMainIp("127.0.0.1"); // must be an arg
     db.setMainPort(50000); // must be an arg
     std::vector<std::string> args;
 
@@ -30,6 +31,7 @@ int main(int argc, char* argv[]) {
     }
 
     bool st;
+
     if (argv[1][0] == 'C')
       st = db.setNode(args);
     else if (argv[1][0] == 'R')
@@ -88,7 +90,8 @@ int main(int argc, char* argv[]) {
       db.setPort(port);
       db.setIp("127.0.0.1");
       // db.setMainIp("35.231.230.50"); // must be an arg
-    db.setMainIp("127.0.0.1"); // must be an arg
+      db.setMainIp("35.240.132.238"); // must be an arg
+      // db.setMainIp("127.0.0.1"); // must be an arg
       db.setMainPort(50000); // must be an arg
       db.setMode('E');
       db.setRepository();

@@ -40,7 +40,7 @@ std::vector<RDT_UDP_Helper::Packet> RDT_UDP_Helper::MakePackets(
     auto checksum = CalculateChecksum(s);
     packets.push_back(Packet(checksum, s.size(), alternate_bit, s));
     alternate_bit = !alternate_bit;
-    std::cout << "Packet: " << packets.back().ToString() << std::endl;
+    // std::cout << "Packet: " << packets.back().ToString() << std::endl;
   }
 
   return packets;
