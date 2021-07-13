@@ -115,13 +115,13 @@ bool DGDBEngine::RunServerMain() {
     std::cout << "[BUG DETECTED] RunServerMain" << std::endl;
   }
 
-  db.SetPort(server_port);
-  db.SetMode('S');
-  db.SetServer();
+  db.setPort(server_port);
+  db.setMode('S');
+  db.setServer();
   
   PrintServerTitle(type_server);
 
-  db.RunServer();
+  db.runServer();
     
   return true;
 }
@@ -144,7 +144,7 @@ bool DGDBEngine::RunServerRepository() {
     main_port = stoi(args_first_input[4]);
     type_server = "Running repository";
   } else if (args_first_input.size() == 3){
-    main_ip = "127.0.0.1";
+    main_ip = "35.240.132.238";
     main_port = 50000;
     type_server = "Running default repository";
   } else {
@@ -154,12 +154,12 @@ bool DGDBEngine::RunServerRepository() {
   // TODO: delete this arg
   std::string repo_ip("127.0.0.1");
 
-  db.SetPort(repo_port);
-  db.SetIp(repo_ip);
-  db.SetMainIp(main_ip);
-  db.SetMainPort(main_port);
-  db.SetMode('E');
-  db.SetRepository();
+  db.setPort(repo_port);
+  db.setIp(repo_ip);
+  db.setMainIp(main_ip);
+  db.setMainPort(main_port);
+  db.setMode('E');
+  db.setRepository();
   
   // OPTIONAL: Seems pro
   int joke = 0;
@@ -171,7 +171,7 @@ bool DGDBEngine::RunServerRepository() {
 
   PrintServerTitle(type_server);
 
-  db.RunServer();
+  db.runServer();
 
   return true;
 }
@@ -195,21 +195,26 @@ bool DGDBEngine::RunClient(std::vector<std::string> args_in,
   char mode;
   strcpy(&mode, crud_mode.c_str());
 
-  db.SetMode(mode);
-  db.SetClient(client_ip, client_port);
-  db.SetMainIp(server_ip);
-  db.SetMainPort(server_port);
+  db.setMode(mode);
+  db.setClient();
+  db.setMainIp(server_ip);
+  db.setMainPort(server_port);
+
+  bool st;
 
   if (crud_mode == "create")
-    db.SetNode(args);
+    st = db.setNode(args);
   else if (crud_mode == "read")
-    db.SetQuery(args);
+    st = db.setQuery(args);
   else if (crud_mode == "update")
-    db.SetUpdate(args);
+    st = db.setUpdate(args);
   else if (crud_mode == "delete")
-    db.SetDelete(args);
+    st = db.setDelete(args);
   else std::cout << "[BUG DETECTED] RunClient" << std::endl;
 
+  if (st)
+    db.WaitResponse();
+  
   return true;
 }
 
