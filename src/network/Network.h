@@ -17,8 +17,10 @@ class UDPSocket {
 
   int GetSocketId() const;
   int SendTo(const std::string& ip_addr, uint16_t port,
-              const char* buffer, int len, int flags=0);
+             const char* buffer, int len, int flags=0);
   std::pair<int, sockaddr_in> RecvFrom(char* buffer, int len, int flags=0);
+  std::pair<int, sockaddr_in> RecvFromTillTimeout(std::string* s, size_t max_size,
+      size_t timeout);
   void Bind(uint16_t port);
   void Shutdown(int flags=0);
   void Close();

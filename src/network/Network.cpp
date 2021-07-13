@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <poll.h>
 #include <unistd.h>
 #include <utility>
 #include <iostream>
@@ -23,7 +24,7 @@ int UDPSocket::GetSocketId() const {
 }
 
 int UDPSocket::SendTo(const std::string& ip_addr, uint16_t port,
-                       const char* buffer, int len, int flags) {
+                      const char* buffer, int len, int flags) {
   sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = inet_addr(ip_addr.c_str());
@@ -41,7 +42,8 @@ int UDPSocket::SendTo(const std::string& ip_addr, uint16_t port,
   return ret;
 }
 
-std::pair<int, sockaddr_in> UDPSocket::RecvFrom(char* buffer, int len, int flags) {
+std::pair<int, sockaddr_in> UDPSocket::RecvFrom(char* buffer, int len,
+    int flags) {
   sockaddr_in from;
   int size = sizeof(from);
   int ret = recvfrom(sock, buffer, len, flags,
@@ -56,6 +58,46 @@ std::pair<int, sockaddr_in> UDPSocket::RecvFrom(char* buffer, int len, int flags
 
   buffer[ret] = '\0';
   return std::make_pair(ret, from);
+}
+
+std::pair<int, sockaddr_in> UDPSocket::RecvFromTillTimeout(std::string* s,
+    size_t max_size,
+    size_t timeout) {
+  struct pollfd poll_fd;
+  poll_fd.fd = GetSocketId();
+  poll_fd.events = POLLIN;
+  poll_fd.revents = 0;
+
+  int ret = poll(&poll_fd, 1, timeout * 1000);
+
+  int n;
+  sockaddr_in from;
+  char buffer[max_size];
+
+  if (ret < 0) {
+    perror("Error ppoll in UDPSocket::RecvFromTillTimeout.");
+    n = 0;
+  }
+  else if (ret == 0) {
+    n = 0;
+  }
+  else {
+    if (poll_fd.revents == POLLIN) {
+      auto [n_, from_] = RecvFrom(buffer, max_size);
+      n = std::move(n_);
+      from = std::move(from_);
+      *s = std::string(buffer);
+    }
+    else {
+      (*s).clear();
+      perror("Error! revents is not POLLIN in UDPSocket::RecvFromTillTimeout.");
+      n = 0;
+    }
+  }
+
+  // std::cout << "Received buffer:\n" << buffer << "\nfrom RecvFromTillTimeout()" <<
+            // std::endl;
+  return std::make_pair(n, from);
 }
 
 void UDPSocket::Bind(uint16_t port) {

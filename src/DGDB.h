@@ -22,6 +22,7 @@
 #include <set>
 
 #include "network/Network.h"
+#include "rdt/RDT_UDP.h"
 #include "DBSchema.h"
 
 class DGDB {
@@ -52,7 +53,7 @@ class DGDB {
     QueryState* state = nullptr;
   };
 
-  Network::UDPSocket udp_socket;
+  RDT_UDP rdt_udp_socket;
 
   Storage storage;
 
@@ -76,9 +77,11 @@ class DGDB {
   void runMainServer();
 
   void runConnection();
+  void connMasterRepository(std::string pIp, uint16_t pPort);
 
  public:
-  explicit DGDB(char Pmode='S') : storage(InitStorage("./dgdb_data.sqlite3")) {
+  explicit DGDB(char Pmode='S')
+    : rdt_udp_socket(20), storage(InitStorage("./dgdb_data.sqlite3")) {
     mode = Pmode;
     ip="127.0.0.1";
     port=50000;
@@ -90,9 +93,11 @@ class DGDB {
   }
   void setMainIp(std::string ip) {
     mainIp = ip;
+    repositories[0].ip = mainIp;
   };
   void setMainPort(int pport=50000) {
     mainPort = pport;
+    repositories[0].port = mainPort;
   };
 
   void setServer();

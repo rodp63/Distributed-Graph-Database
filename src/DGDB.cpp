@@ -2,28 +2,39 @@
 #include "DGDB.h"
 #include "tools.h"
 #include "thirdparty/sqlite_orm/sqlite_orm.h"
+#include "rdt/RDT_UDP.h"
 
 namespace sq = sqlite_orm;
 
 void DGDB::WaitResponse() {
-  char buffer[1024];
-  auto [n, from_addr] = udp_socket.RecvFrom(buffer, 1000);
-  if (buffer[0] == 'M') {
-    std::string message(buffer);
-    std::cout << message.substr(4, message.size() - 7) << std::endl;
+  std::string message;
+
+  while (true) {
+    rdt_udp_socket.RecvFrom(&message);
+
+    size_t pos;
+
+    if (message[0] == 'M') {
+      while ((pos = message.find("\\n")) != std::string::npos) {
+        message.replace(pos, 2, "\n");
+      }
+
+      std::cout << message.substr(4, message.size() - 7) << std::endl;
+      break;
+    }
   }
 }
 
 void DGDB::runConnection() {
   int s, ss, request_id, repo_count;
-  char buffer[1024];
   std::string s_buffer;
   std::string bufferAux;
   std::string node_name;
 
   while (server || repository) {
-    auto [n, from_addr] = udp_socket.RecvFrom(buffer, 1000);
-    s_buffer = buffer;
+    s_buffer.clear();
+    sockaddr_in from_addr = rdt_udp_socket.RecvFrom(&s_buffer);
+    std::cout << "From application: " << s_buffer << std::endl;
 
     if (s_buffer[0] == 'M') {
       std::cout << "------------------\nAction: M" << std::endl;
@@ -93,34 +104,40 @@ void DGDB::runConnection() {
       node_name = s_buffer.substr(0, s - 2);
 
       auto top_node = pending[request_id].state->node_queue.front();
+
       if (top_node.first == node_name) {
         pending[request_id].state->node_queue.pop();
+
         if (valid_node) {
-          std::string &response = pending[request_id].state->response;
+          std::string& response = pending[request_id].state->response;
           response += node_name;
           response += " [Depth = ";
           response += std::to_string(pending[request_id].state->depth - top_node.second);
-          response += +"]\n";
+          response += +"]\\n";
+
           if (pending[request_id].state->attr) {
-            for (auto &attr : attributes) {
+            for (auto& attr : attributes) {
               response += "  " + attr.key;
-              response += ": " + attr.value + "\n";
+              response += ": " + attr.value + "\\n";
             }
           }
         }
-        for (std::string &rel_node : relations) {
-          std::set<std::string> &visited = pending[request_id].state->visited;
+
+        for (std::string& rel_node : relations) {
+          std::set<std::string>& visited = pending[request_id].state->visited;
+
           if (visited.find(rel_node) == visited.end()) {
             if (top_node.second > 0) {
               pending[request_id].state->node_queue.emplace(rel_node,
-                                                            top_node.second - 1);
+                  top_node.second - 1);
               visited.insert(rel_node);
             }
           }
         }
+
         if (pending[request_id].state->node_queue.empty()) {
           Host client = sockaddrToHost(pending[request_id].client_sock);
-          bufferAux = "OK! Query complete\n" + pending[request_id].state->response;
+          bufferAux = "OK! Query complete\\n" + pending[request_id].state->response;
           parseNewMessageResponse(client, bufferAux, request_id);
           cud_blocking = false;
           pending.erase(request_id);
@@ -226,7 +243,7 @@ void DGDB::runConnection() {
         Pending c_pending;
         c_pending.client_sock = from_addr;
         pending[current_request] = c_pending;
-        
+
         parseNewNode(node_name, repositories[r], attributes, relations,
                      current_request, repositories);
         ++current_request;
@@ -236,6 +253,7 @@ void DGDB::runConnection() {
         s_buffer.erase(s, 1);
 
         std::vector<Host> master_repos;
+
         while (repo_count--) {
           std::string repo_info;
           ss = stoi(s_buffer.substr(s, 2));
@@ -254,12 +272,13 @@ void DGDB::runConnection() {
 
         try {
           auto node = storage.get_all<Node>(sq::where(sq::c(&Node::name) =
-                                                      node_name));
+                                              node_name));
+
           if (node.empty()) {
             storage.insert(new_node);
           }
           else {
-            message = "[WARNING] Node already exists. Skipping\n";
+            message = "[WARNING] Node already exists. Skipping\\n";
             std::cout << message;
           }
         }
@@ -292,6 +311,7 @@ void DGDB::runConnection() {
           try {
             auto node = storage.get_all<Node>(sq::where(sq::c(&Node::name) =
                                                 related_node.name));
+
             if (node.empty()) {
               related_node.id = storage.insert(related_node);
             }
@@ -313,6 +333,7 @@ void DGDB::runConnection() {
         }
 
         message += "OK! Node stored successfully";
+
         if (request_id)
           parseNewMessageResponse(repositories[0], message, request_id);
 
@@ -333,7 +354,6 @@ void DGDB::runConnection() {
 
       bufferAux = s_buffer[s - 5];
       depth = stoi(bufferAux);
-
       bufferAux = s_buffer[s - 4];
       leaf = stoi(bufferAux);
 
@@ -426,23 +446,25 @@ void DGDB::runConnection() {
         }
 
         auto attributes = storage.get_all<Attribute>(sq::where(
-            sq::c(&Attribute::node_name) = node_name));
+                            sq::c(&Attribute::node_name) = node_name));
         auto db_rels = storage.get_all<Relation>(sq::where(
-            sq::c(&Relation::node_name1) = node_name));
+                         sq::c(&Relation::node_name1) = node_name));
 
         std::vector<std::string> relations;
-        for (auto &rel : db_rels)
+
+        for (auto& rel : db_rels)
           relations.push_back(rel.node_name2);
 
         bool valid_node = (depth == 0 || !leaf);
         std::string next_lop = "&";
 
-        for (auto &condition : conditions) {
-          std::string &key = condition.key;
-          std::string &value = condition.value;
+        for (auto& condition : conditions) {
+          std::string& key = condition.key;
+          std::string& value = condition.value;
           bool current = true;
 
           auto it = attributes.begin();
+
           for (; it != attributes.end(); ++it)
             if (it->key == key) break;
 
@@ -451,18 +473,19 @@ void DGDB::runConnection() {
           else {
             if (condition.op == Condition::Operator::EQUAL)
               current = (it->value == value);
-            else if(condition.op == Condition::Operator::LESS)
+            else if (condition.op == Condition::Operator::LESS)
               current = (it->value < value);
             else if (condition.op == Condition::Operator::GREATER)
               current = (it->value > value);
             else if (condition.op == Condition::Operator::LIKE)
               current = (value.find(it->value) != std::string::npos);
           }
-          
-          if(next_lop == "&")
+
+          if (next_lop == "&")
             valid_node = valid_node && current;
           else
             valid_node = valid_node || current;
+
           next_lop = condition.is_or_to_string();;
         }
 
@@ -533,8 +556,9 @@ void DGDB::runConnection() {
         Pending c_pending;
         c_pending.client_sock = from_addr;
         pending[current_request] = c_pending;
-        
-        parseNewUpdate(node_name, is_node, set_value, repositories[r], attr, current_request);
+
+        parseNewUpdate(node_name, is_node, set_value, repositories[r], attr,
+                       current_request);
         ++current_request;
       }
       else if (repository) {
@@ -618,6 +642,7 @@ void DGDB::runConnection() {
         s_buffer.erase(s, 1);
 
         std::vector<Host> master_repos;
+
         while (repo_count--) {
           std::string repo_info;
           ss = stoi(s_buffer.substr(s, 2));
@@ -668,17 +693,13 @@ void DGDB::runConnection() {
     else if (s_buffer[0] == 'E') {
       std::cout << "------------------\nAction: E" << std::endl;
       s_buffer.erase(0, 1);
-      std::string vIp;
-      int vPort;
 
-      vPort = stoi(s_buffer.substr(0, 5));
-      s_buffer.erase(0, 5);
+      uint16_t vPort = ntohs(from_addr.sin_port);
+      char sIp[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET, &from_addr.sin_addr, sIp, INET_ADDRSTRLEN);
+      std::string vIp(sIp);
 
-      vIp = s_buffer.substr(0, 16);
-      s_buffer.erase(0, 16);
-
-      trim(vIp);
-      repository = 1;
+      connMasterRepository(vIp, vPort);
 
       if (repository) {
         repositories.push_back(Host{vIp, vPort});
@@ -711,22 +732,22 @@ void DGDB::setClient() {
 
 void DGDB::closeClient() {
   connection = 0;
-  udp_socket.Shutdown(SHUT_RDWR);
-  udp_socket.Close();
+  rdt_udp_socket.Shutdown(SHUT_RDWR);
+  rdt_udp_socket.Close();
 }
 
 void DGDB::setServer() {
-  udp_socket.Bind(port);
+  rdt_udp_socket.Bind(port);
   server = 1;
 }
 
 void DGDB::closeServer() {
   server = 0;
-  udp_socket.Close();
+  rdt_udp_socket.Close();
 }
 
 void DGDB::setRepository() {
-  udp_socket.Bind(port);
+  rdt_udp_socket.Bind(port);
 
   registerRepository();
   repository = 1;
@@ -806,11 +827,7 @@ void DGDB::parseNewNode(std::string nameA, Host host,
     buffer += std::string(tamano) + repo_str;
   }
 
-  int n = udp_socket.SendTo(host.ip, host.port, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
-  }
+  rdt_udp_socket.SendTo(host.ip, host.port, buffer);
 }
 
 bool DGDB::setQuery(std::vector<std::string> args) {
@@ -894,11 +911,7 @@ void DGDB::parseNewQuery(std::string nameA, int depth, bool leaf, bool attr,
   sprintf(tamano, "%03lu", request_id);
   buffer += std::string(tamano);
 
-  int n = udp_socket.SendTo(host.ip, host.port, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
-  }
+  rdt_udp_socket.SendTo(host.ip, host.port, buffer);
 }
 
 bool DGDB::setUpdate(std::vector<std::string> args) {
@@ -967,11 +980,7 @@ void DGDB::parseNewUpdate(std::string nameA, bool is_node,
   sprintf(tamano, "%03lu", request_id);
   buffer += std::string(tamano);
 
-  int n = udp_socket.SendTo(host.ip, host.port, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
-  }
+  rdt_udp_socket.SendTo(host.ip, host.port, buffer);
 }
 
 bool DGDB::setDelete(std::vector<std::string> args) {
@@ -1041,14 +1050,11 @@ void DGDB::parseNewDelete(std::string nameA, int object, Host host,
     buffer += std::string(tamano) + repo_str;
   }
 
-  int n = udp_socket.SendTo(host.ip, host.port, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
-  }
+  rdt_udp_socket.SendTo(host.ip, host.port, buffer);
 }
 
-void DGDB::parseNewMessageResponse(Host host, std::string message, size_t request_id) {
+void DGDB::parseNewMessageResponse(Host host, std::string message,
+                                   size_t request_id) {
   char tamano[4];
   sprintf(tamano, "%03lu", message.length());
   std::string buffer;
@@ -1058,11 +1064,7 @@ void DGDB::parseNewMessageResponse(Host host, std::string message, size_t reques
   sprintf(tamano, "%03lu", request_id);
   buffer += std::string(tamano);
 
-  int n = udp_socket.SendTo(host.ip, host.port, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
-  }
+  rdt_udp_socket.SendTo(host.ip, host.port, buffer);
 }
 
 void DGDB::parseNewInfoResponse(std::string nameA, Host host,
@@ -1095,34 +1097,24 @@ void DGDB::parseNewInfoResponse(std::string nameA, Host host,
   sprintf(tamano, "%01lu", (size_t)valid_node);
   buffer += std::string(tamano);
 
-  int n = udp_socket.SendTo(host.ip, host.port, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    perror("error listen failed\n");
-  }
+  rdt_udp_socket.SendTo(host.ip, host.port, buffer);
 }
 
 void DGDB::registerRepository() {
   std::cout << "[INFO] Attached to " << ip << std::endl;
   std::string buffer;
-  char vip[17];
-  char vport[6];
-  sprintf(vport, "%05d", port);
-  vport[5] = '\0';
-  sprintf(vip, "%16s", ip.c_str());
-  std::string sport = vport;
-  std::string sip = vip;
-  buffer = "E" + sport + sip;
-
-  int n = udp_socket.SendTo(mainIp, mainPort, buffer.c_str(), buffer.length());
-
-  if (n > 0 && (size_t)n != buffer.length()) {
-    std::cout << "Registering Repository: [" << buffer << "] failed" << std::endl;
-  }
+  buffer = "E";
+  std::cout << "*" << buffer.c_str() << "*" << std::endl;
+  rdt_udp_socket.SendTo(mainIp, mainPort, buffer);
 }
 
 void DGDB::runRepository() {
   runConnection();
+}
+
+void DGDB::connMasterRepository(std::string pIp, uint16_t pPort) {
+  std::cout << pIp << "-" << pPort << std::endl;
+  repository = 1;
 }
 
 DGDB::Host DGDB::sockaddrToHost(struct sockaddr_in sock) {
