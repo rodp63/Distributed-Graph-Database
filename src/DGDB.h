@@ -18,6 +18,8 @@
 #include <vector>
 #include <algorithm>
 #include <cstdint>
+#include <queue>
+#include <set>
 
 #include "network/Network.h"
 #include "DBSchema.h"
@@ -33,9 +35,21 @@ class DGDB {
     Host(std::string ip, int port) : ip(ip), port(port) {}
   };
 
+  struct QueryState {
+    bool leaf, attr;
+    size_t depth;
+    std::vector<Condition> conditions;
+    std::queue<std::pair<std::string, size_t>> node_queue;
+    std::set<std::string> visited;
+    std::string response;
+
+    QueryState(bool _leaf, bool _attr, size_t _depth) :
+        leaf(_leaf), attr(_attr), depth(_depth) {}
+  };
+
   struct Pending {
     struct sockaddr_in client_sock;
-    int desired_responses = 1;
+    QueryState* state = nullptr;
   };
 
   Network::UDPSocket udp_socket;
@@ -55,6 +69,7 @@ class DGDB {
 
   std::vector<Host> repositories;
 
+  bool cud_blocking = false;
   size_t current_request = 1;
   std::map<int, Pending> pending;
 
@@ -106,7 +121,11 @@ class DGDB {
   Host stringToHost(std::string host);
 
   void WaitResponse();
-  void parseNewResponse(Host host, std::string message, size_t request_id = 0);
+  void parseNewMessageResponse(Host host, std::string message, size_t request_id = 0);
+  void parseNewInfoResponse(std::string nameA, Host host,
+                            std::vector<Attribute> attributes = {},
+                            std::vector<std::string> relations = {},
+                            size_t request_id = 0, bool valid_node = false);
 
   // CRUD DGDB
   bool setNode(std::vector<std::string> args);
