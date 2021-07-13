@@ -63,16 +63,12 @@ std::pair<int, sockaddr_in> UDPSocket::RecvFrom(char* buffer, int len,
 std::pair<int, sockaddr_in> UDPSocket::RecvFromTillTimeout(std::string* s,
     size_t max_size,
     size_t timeout) {
-  struct timespec ts;
-  ts.tv_sec = timeout;
-  ts.tv_nsec = 0;
-
   struct pollfd poll_fd;
   poll_fd.fd = GetSocketId();
   poll_fd.events = POLLIN;
   poll_fd.revents = 0;
 
-  int ret = ppoll(&poll_fd, 1, &ts, NULL);
+  int ret = poll(&poll_fd, 1, timeout * 1000);
 
   int n;
   sockaddr_in from;

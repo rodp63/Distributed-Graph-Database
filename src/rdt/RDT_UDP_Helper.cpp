@@ -11,8 +11,8 @@ uint16_t RDT_UDP_Helper::CalculateChecksum(const std::string& data) const {
   uint16_t sum = 0;
 
   for (const auto& c : data) {
-    // std::cout << "c - '0' = " << (c - '0') << std::endl;
-    sum += (c - '0');
+    // std::cout << "c - '0' = " << c << std::endl;
+    sum += c;
   }
 
   // std::cout << "calculated checksum = " << sum << std::endl;
@@ -40,7 +40,7 @@ std::vector<RDT_UDP_Helper::Packet> RDT_UDP_Helper::MakePackets(
     auto checksum = CalculateChecksum(s);
     packets.push_back(Packet(checksum, s.size(), alternate_bit, s));
     alternate_bit = !alternate_bit;
-    // std::cout << "Packet: " << packets.back().ToString() << std::endl;
+    std::cout << "Packet: " << packets.back().ToString() << std::endl;
   }
 
   return packets;

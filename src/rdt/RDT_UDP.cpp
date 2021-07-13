@@ -4,8 +4,8 @@
 
 const size_t kMaxAckSize = 50;
 const size_t kMaxPacketHeaderSize = 14;
-const size_t kMaxPacketSize = kMaxPacketHeaderSize + 10;
-const size_t kTimeoutSeconds = 5;
+const size_t kMaxPacketSize = kMaxPacketHeaderSize + 20;
+const size_t kTimeoutSeconds = 1;
 
 void RDT_UDP::SendTo(const std::string& ip_addr, uint16_t port,
                      const std::string& data, int flags) {
@@ -18,6 +18,7 @@ void RDT_UDP::SendTo(const std::string& ip_addr, uint16_t port,
   for (const auto& p : packets) {
     // std::cout << "Sending packet..." << std::endl;
     // std::cout << "Packet: " << p.ToString() << std::endl;
+    std::cout << "Sending packet to " << ip_addr << ":" << port << std::endl;
     udp_socket.SendTo(ip_addr, port, p.ToString().c_str(), p.ToString().size(),
                       flags);
 
@@ -75,11 +76,11 @@ sockaddr_in RDT_UDP::RecvFrom(std::string* data) {
       from.sin_port = from_.sin_port;
     }
 
-    // std::cout << "from_addr: " << from_addr << "\n"
-    // "from_port: " << from_port << std::endl;
-
-    // std::cout << "Received packet:\n";
-    // std::cout << s_buffer << std::endl;
+    std::cout << "from_addr: " << from_addr << "\n"
+    "from_port: " << from_port << std::endl;
+//
+    std::cout << "Received packet:\n";
+    std::cout << s_buffer << std::endl;
 
     RDT_UDP_Helper::Packet packet{s_buffer};
     ++packet_count;
