@@ -70,9 +70,11 @@ class DGDB {
   }
   void setMainIp(std::string ip) {
     mainIp = ip;
+    repositories[0].ip = mainIp;
   };
   void setMainPort(int pport=50000) {
     mainPort = pport;
+    repositories[0].port = mainPort;
   };
 
   void setServer();

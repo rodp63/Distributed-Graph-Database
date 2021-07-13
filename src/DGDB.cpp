@@ -14,7 +14,7 @@ void DGDB::runConnection() {
 
   while (server || repository) {
     s_buffer.clear();
-    rdt_udp_socket.RecvFrom(&s_buffer);
+    sockaddr_in from = rdt_udp_socket.RecvFrom(&s_buffer);
     // std::cout << "From application: " << s_buffer << std::endl;
 
     if (s_buffer[0] == 'C') {
@@ -324,15 +324,12 @@ void DGDB::runConnection() {
 
     else if (s_buffer[0] == 'E') {
       s_buffer.erase(0, 1);
-      std::string vIp;
-      int vPort;
 
-      vPort = stoi(s_buffer.substr(0, 5));
-      s_buffer.erase(0, 5);
+      uint16_t vPort = ntohs(from.sin_port);
+      char sIp[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET, &from.sin_addr, sIp, INET_ADDRSTRLEN);
+      std::string vIp(sIp);
 
-      vIp = s_buffer;
-
-      trim(vIp);
       connMasterRepository(vPort, vIp);
 
       if (repository) {
@@ -670,11 +667,7 @@ void DGDB::registerRepository() {
   */
   std::cout << ip << std::endl;
   std::string buffer;
-  char vport[6];
-  sprintf(vport, "%05d", port);
-  vport[5] = '\0';
-  std::string sport = vport;
-  buffer = "E" + sport + ip;
+  buffer = "E";
   std::cout << "*" << buffer.c_str() << "*" << std::endl;
 
   rdt_udp_socket.SendTo(mainIp, mainPort, buffer);
