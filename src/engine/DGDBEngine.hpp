@@ -185,20 +185,17 @@ bool DGDBEngine::RunClient(std::vector<std::string> args_in,
   std::string crud_mode = args_in[0];
   std::vector<std::string> args(args_in.begin()+1, args_in.end());
 
-  // TODO: these 4 following variables must be args
   // Setting main server
   int server_port = 50000;
   
   // Setting client
-  std::string client_ip("127.0.0.1");
-  int client_port = 40000;
   char mode;
   strcpy(&mode, crud_mode.c_str());
 
   db.setMode(mode);
   db.setClient();
-  db.setMainIp(server_ip);
-  db.setMainPort(server_port);
+  db.setMainIp("35.240.132.238");
+  db.setMainPort(50000);
 
   bool st;
 
