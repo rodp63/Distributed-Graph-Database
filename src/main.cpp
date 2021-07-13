@@ -1,122 +1,22 @@
-#include "DGDB.h"
-#include "tools.h"
+#include "engine/DGDBEngine.hpp"
 
-int ExecuteDGDB(std::vector<std::string> argv, mode &run_mode) {
-  // TODO: default contructor shouldn't define some variables
-  DGDB db;
+int main(int argc, char* argv[]) {
+  DGDBEngine dgdb_engine;
+  dgdb_engine.Init(argc, argv);
 
-  std::vector<std::string> args(argv.begin()+1, argv.end());
+  if (dgdb_engine.run_mode == mode::kShell) {
+    dgdb_engine.Shell();
+  } else if (dgdb_engine.run_mode == mode::kServerRepository) {
+    dgdb_engine.RunServerRepository();
+  } else if (dgdb_engine.run_mode == mode::kServerMain) {
+    dgdb_engine.RunServerMain();
+  } else if (dgdb_engine.run_mode == mode::kNotArguments) {
+    dgdb_engine.PrintMainUsage();
+  } else if (dgdb_engine.run_mode == mode::kError) {
+    dgdb_engine.PrintMainUsageFirstArg();
+  } else std::cout << "[BUG DETECTED] Main" << std::endl;
 
-  // CRUD request
-  if (run_mode == mode::kClient) {
-    // TODO: these 4 following variables must be args
-    // Setting main server
-    std::string server_ip("127.0.0.1");
-    int server_port = 50000;
-    
-    // Setting client
-    std::string client_ip("127.0.0.1");
-    int client_port = 50000;
-    char mode;
-    strcpy(&mode, argv[0].c_str());
-
-    db.SetMode(mode);
-    db.SetClient(client_ip, client_port); // TODO: add parameters client_ip, client_port
-    db.SetMainIp(server_ip); 
-    db.SetMainPort(server_port);
-
-    if (argv[0] == "C")
-      db.SetNode(args);
-    else if (argv[0] == "R")
-      db.SetQuery(args);
-    else if (argv[0] == "U")
-      db.SetUpdate(args);
-    else if (argv[0] == "D")
-      db.SetDelete(args);
-  }
-
-  // SERVER request
-  else if (run_mode == mode::kServer) {
-
-    std::string main_or_repo = argv[1];
-
-    // Main server
-    if (main_or_repo == "--server") {
-
-      int server_port;
-      
-      if (argv.size() == 2) {
-        server_port = 50000; // default setting
-      } else { // 4 arguments
-        server_port = stoi(argv[3]);
-      }
-
-      system("clear");
-      PrintMainServer();
-
-      db.SetPort(server_port);
-      db.SetMode('S');
-      db.SetServer();
-      db.RunServer();
-    }
-    // Repository server
-    else if (main_or_repo == "--repository") {
-      
-      // Setting main server
-      int repo_port = stoi(argv[3]);
-      std::string main_ip;
-      int main_port;
-      // TODO: this must be an arg
-      std::string repo_ip("127.0.0.1");
-
-      if (argv.size() == 6) {
-        main_ip = argv[4];
-        main_port = stoi(argv[5]);
-      } else { // default setting
-        main_ip = "127.0.0.1";
-        main_port = 50000;
-      }
-
-      db.SetPort(repo_port);
-      db.SetIp(repo_ip);
-      db.SetMainIp(main_ip);
-      db.SetMainPort(main_port);
-      db.SetMode('E');
-      db.SetRepository();
-      
-      std::cout << "[DGDB] Running Repository..." << std::endl;
-      std::this_thread::sleep_for (std::chrono::seconds(2)); // seems pro
-      system("clear");
-      PrintRepository();
-
-      db.RunServer();
-    }
-  }
-  else std::cout << "[BUG DETECTED] ExecuteDGDB" << std::endl;
-
-  return 1;
-}
-
-void RunDGDB() {
-    char *input_user;
-    std::vector<std::string> args;
-    int status_dgdb;
-    bool correct_input = false;
-    mode run_mode;
-
-    do {  
-      printf("DGDB >> ");
-      input_user = ReadInputConsole();
-      args = SplitInput(input_user);
-      correct_input = VerifyInput(args, run_mode);
-      if (correct_input) status_dgdb = ExecuteDGDB(args, run_mode);
-      free(input_user);
-    } while(status_dgdb);
-}
-
-int main() {
-    RunDGDB();
-    return EXIT_SUCCESS;
+  return EXIT_SUCCESS;
 }
 
 /*

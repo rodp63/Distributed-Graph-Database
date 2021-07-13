@@ -2,9 +2,11 @@
 #include "DGDB.h"
 
 #include "thirdparty/sqlite_orm/sqlite_orm.h"
+#include "tools.h"
 
 namespace sq = sqlite_orm;
 
+// TODO: default contructor shouldn't define some variables
 DGDB::DGDB() : storage(InitStorage("./dgdb_data.sqlite3")),
   ip("127.0.0.1"),
   port(50000),
@@ -370,9 +372,8 @@ void DGDB::RunConnection() {
 
       vIp = s_buffer.substr(0, 16);
       s_buffer.erase(0, 16);
-      vIp.erase(remove(vIp.begin(), vIp.end(), ' '), vIp.end());
 
-      sq::trim(vIp);
+      trim(vIp);
       ConnMasterRepository(vPort, vIp);
 
       if (repository) {
@@ -430,6 +431,8 @@ void DGDB::SetRepository() {
   RegisterRepository();
   repository = 1;
 }
+
+// CRUD
 
 void DGDB::SetNode(std::vector<std::string> args) {
   std::string nameA = args[0];
