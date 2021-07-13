@@ -34,7 +34,7 @@ void DGDB::runConnection() {
   while (server || repository) {
     s_buffer.clear();
     sockaddr_in from_addr = rdt_udp_socket.RecvFrom(&s_buffer);
-    std::cout << "From application: " << s_buffer << std::endl;
+    //std::cout << "From application: " << s_buffer << std::endl;
 
     if (s_buffer[0] == 'M') {
       std::cout << "------------------\nAction: M" << std::endl;
