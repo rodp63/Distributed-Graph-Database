@@ -1,3 +1,4 @@
+#include <string>
 #include "DGDB.h"
 #include "tools.h"
 
@@ -27,14 +28,18 @@ int main(int argc, char* argv[]) {
       return 0;
     }
 
+    bool st;
     if (argv[1][0] == 'C')
-      db.setNode(args);
+      st = db.setNode(args);
     else if (argv[1][0] == 'R')
-      db.setQuery(args);
+      st = db.setQuery(args);
     else if (argv[1][0] == 'U')
-      db.setUpdate(args);
+      st = db.setUpdate(args);
     else if (argv[1][0] == 'D')
-      db.setDelete(args);
+      st = db.setDelete(args);
+
+    if (st)
+      db.WaitResponse();
   }
 
   else if (argv[1][0] == 'S') {
